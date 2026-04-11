@@ -1,0 +1,17 @@
+name: Enforce PR Flow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check-source-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if PR is from development
+        if: github.head_ref != 'development'
+        run: |
+          echo "ERROR: Bawal mag-PR diretso sa main branch!"
+          echo "Dapat i-target muna ang development branch. Pag okay na doon, tsaka lang mag-PR from development to main."
+          exit 1
