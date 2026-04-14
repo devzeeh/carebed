@@ -1,0 +1,126 @@
+/* =========================================
+   CAREBED DASHBOARD STYLES
+========================================= */
+
+/* --- Base Reset & Typography --- */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7fa; /* Clean, hospital-gray background */
+    color: #333;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+}
+
+h1 {
+    font-size: 2.2rem;
+    color: #2c3e50;
+    margin-bottom: 30px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* --- Grid Layout --- */
+.dashboard-grid {
+    display: grid;
+    /* This makes it responsive: Side-by-side on PC, stacked on Mobile */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 25px;
+    width: 100%;
+    max-width: 800px; /* Keeps it from stretching too wide on big screens */
+}
+
+/* --- Card Styling --- */
+.card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 30px 20px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06); /* Soft, modern shadow */
+    text-align: center;
+    border-top-style: solid;
+    border-top-width: 6px;
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px); /* Slight lift effect when you hover over it */
+}
+
+.card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #7f8c8d;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 15px;
+}
+
+/* --- Numbers & Values --- */
+.bpm-value, .ir-value {
+    font-size: 4.5rem;
+    font-weight: 700;
+    color: #2c3e50;
+    line-height: 1;
+    margin: 15px 0;
+    font-family: monospace; /* Gives the numbers a digital monitor feel */
+}
+
+/* --- The Heartbeat Counter --- */
+.live-counter {
+    display: inline-block;
+    background-color: #ffeaea;
+    color: #e74c3c;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    display: none; /* Hidden by default until JS triggers it */
+}
+
+/* --- Status Displays --- */
+#status-display {
+    margin-top: 20px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+/* Javascript dynamic classes */
+.no-finger {
+    background-color: #f1f2f6;
+    color: #a4b0be;
+}
+
+.measuring {
+    background-color: #eaf2f8;
+    color: #2980b9;
+    animation: pulseAlert 1.5s infinite; /* Adds a breathing effect while scanning */
+}
+
+.ready {
+    background-color: #e8f8f5;
+    color: #27ae60;
+}
+
+/* --- Animations --- */
+@keyframes pulseAlert {
+    0% {
+        box-shadow: 0 0 0 0 rgba(41, 128, 185, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(41, 128, 185, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(41, 128, 185, 0);
+    }
+}
