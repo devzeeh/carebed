@@ -1,7 +1,7 @@
 package main
 
 import (
-	authentication "carebed/internal/auth"
+	authentication "carebed/backend/internal/auth"
 	"database/sql"
 	"fmt"
 	"html/template"
@@ -62,12 +62,21 @@ func main() {
 	// serve static files (CSS, JS, images)
 	fileServer := http.FileServer(http.Dir("../frontend/assets"))
 	mux.Handle("/assets/", http.StripPrefix("/assets/", fileServer))
-	
 
-	// POST Request: JSON API endpoints
+	// API endpoints for login, register, and forgot password
 	mux.HandleFunc("POST /api/v1/loginauth", authHandler.LoginAuthHandler) // Login authentication endpoint
 	mux.HandleFunc("GET /login", authHandler.LoginView)
-	//mux.HandleFunc("GET /dashboard", authHandler.Dashboard)
+	//mux.HandleFunc("GET /register", authHandler.RegisterView)
+	//mux.HandleFunc("POST /api/v1/register", authHandler.RegisterAuthHandler)
+	mux.HandleFunc("GET /forgot-password", authHandler.ForgotPasswordView)
+	mux.HandleFunc("POST /api/v1/forgot-password/request", authHandler.RequestOTPHandler)
+	mux.HandleFunc("POST /api/v1/forgot-password/verify", authHandler.VerifyOTPHandler)
+	mux.HandleFunc("POST /api/v1/forgot-password/reset", authHandler.ResetPasswordHandler)
+
+	// API endpoints for dashboard, logout, and profile
+	//mux.HandleFunc("GET /dashboard/{id}", authHandler.Dashboard)
+	//mux.HandleFunc("GET /profile/{id}", authHandler.ProfileView)
+	//mux.HandleFunc("GET /logout", authHandler.LogoutView)
 
 	// wrap mux with custom handler for root redirect
 	customHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
