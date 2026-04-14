@@ -4,15 +4,29 @@ document.getElementById('loginForm').addEventListener('submit', async function (
 
     const submitBtn = document.getElementById('submitBtn');
     const errorMessage = document.getElementById('errorMessage');
+    const usernameEl = document.getElementById('username');
+    const passwordEl = document.getElementById('password');
 
-    const usernameInput = document.getElementById('username').value.trim();
-    const passwordInput = document.getElementById('password').value.trim();
+    const usernameInput = usernameEl.value.trim();
+    const passwordInput = passwordEl.value.trim();
+
+    // Reset error styling
+    [usernameEl, passwordEl].forEach(el => {
+        el.classList.remove('border-rose-500', 'dark:border-rose-500', 'focus:ring-rose-500', 'dark:focus:ring-rose-500');
+        el.classList.add('border-gray-300', 'dark:border-slate-700', 'focus:ring-teal-500', 'dark:focus:ring-teal-500');
+    });
 
     if (!usernameInput || !passwordInput) {
         // Using Tailwind utility classes to show the error
         errorMessage.textContent = 'Please enter username and password.';
         errorMessage.classList.remove('hidden');
         errorMessage.classList.add('block');
+        
+        // Add error styling
+        [usernameEl, passwordEl].forEach(el => {
+            el.classList.remove('border-gray-300', 'dark:border-slate-700', 'focus:ring-teal-500', 'dark:focus:ring-teal-500');
+            el.classList.add('border-rose-500', 'dark:border-rose-500', 'focus:ring-rose-500', 'dark:focus:ring-rose-500');
+        });
         return;
     }
 
@@ -22,33 +36,42 @@ document.getElementById('loginForm').addEventListener('submit', async function (
     errorMessage.classList.add('hidden');
     errorMessage.classList.remove('block');
 
+    const payload = {
+        username: usernameInput,
+        password: passwordInput
+    };
+
     try {
-        const response = await fetch('/api/login', {
+        const response = await fetch('/api/v1/loginauth', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
+                //'Accept': 'application/json'
             },
-            body: JSON.stringify({
-                username: usernameInput,
-                password: passwordInput
-            })
+            body: JSON.stringify(payload)
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            console.log('LOGIN RESPONSE:', data);
-            window.location.href = 'dashboard.html';
+        const data = await response.json();
+
+        // Check if the login was successful based on your Go LoginResponse struct
+        if (!data.success) {
+            // Show the error message returned by Go
+            errorMessage.textContent = data.message;
+            errorMessage.style.display = 'block';
+            
+            // Add error styling
+            [usernameEl, passwordEl].forEach(el => {
+                el.classList.remove('border-gray-300', 'dark:border-slate-700', 'focus:ring-teal-500', 'dark:focus:ring-teal-500');
+                el.classList.add('border-rose-500', 'dark:border-rose-500', 'focus:ring-rose-500', 'dark:focus:ring-rose-500');
+            });
         } else {
-            const errText = await response.text();
-            errorMessage.textContent = errText || 'Invalid login credentials!';
-            errorMessage.classList.remove('hidden');
-            errorMessage.classList.add('block');
+            // SUCCESS! 
+            // You can redirect the user to a secure page, or save their token.
+            window.location.href = "/dashboard"; // Change this to your actual success page
         }
     } catch (error) {
         console.error('LOGIN ERROR:', error);
         errorMessage.textContent = 'Server error or network failure. Please try again.';
-        errorMessage.classList.remove('hidden');
         errorMessage.classList.add('block');
     } finally {
         // Restore UI State
