@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carebed AI Monitor</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f0f4f8; color: #333; line-height: 1.6; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .container { grid-template-columns: 1fr; } }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #2c5282; grid-column: 1 / -1; }
+        label { font-weight: bold; display: block; margin-top: 10px; color: #4a5568; }
+        input, select { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #cbd5e0; border-radius: 6px; box-sizing: border-box; }
+        button { background-color: #3182ce; color: white; padding: 12px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-top: 20px; width: 100%; font-weight: bold; }
+        button:hover { background-color: #2b6cb0; }
+        #loading { display: none; text-align: center; margin-top: 20px; color: #2b6cb0; font-weight: bold; }
+        .result-section { margin-top: 15px; }
+        .result-title { font-weight: bold; color: #2d3748; margin-bottom: 5px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;}
+        .disclaimer { font-size: 0.85em; color: #c53030; background: #fff5f5; padding: 10px; border-radius: 6px; margin-top: 20px; border: 1px solid #feb2b2; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Carebed AI Monitor</h1>
+        
+        <div class="card">
+            <h2>Sensor Input</h2>
+            <form id="sensorForm">
+                <label>Patient Age</label>
+                <input type="number" id="age" value="45" required>
+
+                <label>Current BPM</label>
+                <input type="number" id="bpm" value="115" required>
+
+                <label>State</label>
+                <select id="state">
+                    <option value="resting">Resting</option>
+                    <option value="exercising">Exercising</option>
+                    <option value="sleeping">Sleeping</option>
+                </select>
+
+                <label>Duration (Minutes)</label>
+                <input type="number" id="duration" value="15" required>
+
+                <label>Symptoms (comma separated)</label>
+                <input type="text" id="symptoms" value="mild shortness of breath, slight dizziness">
+
+                <button type="submit">Analyze with AI</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2>AI Analysis</h2>
+            <div id="loading">Analyzing data...</div>
+            <div id="results" style="display: none;">
+                
+                <div class="result-section">
+                    <div class="result-title">Severity Level</div>
+                    <div id="out-severity"></div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-title">Analysis</div>
+                    <div id="out-analysis"></div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-title">Action Plan</div>
+                    <div id="out-action"></div>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-title">Potential Benign Causes</div>
+                    <ul id="out-benign"></ul>
+                </div>
+
+                <div class="result-section">
+                    <div class="result-title">Potential Illnesses</div>
+                    <ul id="out-illnesses"></ul>
+                </div>
+
+                <div class="disclaimer" id="out-disclaimer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('sensorForm').addEventListener('submit', async (e) => {
+            e.preventDefault(); // Prevent page reload
+            
+            // Show loading UI
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+
+            // Gather data from form
+            const symptomsInput = document.getElementById('symptoms').value;
+            const symptomsArray = symptomsInput ? symptomsInput.split(',').map(s => s.trim()) : [];
+
+            const payload = {
+                patient_age: parseInt(document.getElementById('age').value),
+                current_bpm: parseInt(document.getElementById('bpm').value),
+                state: document.getElementById('state').value,
+                duration_minutes: parseInt(document.getElementById('duration').value),
+                symptoms: symptomsArray
+            };
+
+            try {
+                // Send POST request to Go server
+                const response = await fetch('/api/ai/v1/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    // This grabs the actual error text sent by your Go server!
+                    const errText = await response.text(); 
+                    throw new Error(`Status ${response.status}: ${errText}`);
+                    console.error("Server error:", errText);
+                }
+                
+                const data = await response.json();
+
+                // Populate the UI with AI results
+                document.getElementById('out-severity').innerText = data.severity_level;
+                document.getElementById('out-analysis').innerText = data.analysis;
+                document.getElementById('out-action').innerText = data.action_plan;
+                document.getElementById('out-disclaimer').innerText = data.medical_disclaimer;
+
+                document.getElementById('out-benign').innerHTML = data.potential_benign_causes.map(c => `<li>${c}</li>`).join('');
+                document.getElementById('out-illnesses').innerHTML = data.potential_illnesses.map(c => `<li>${c}</li>`).join('');
+
+                // Switch UI from loading to results
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('results').style.display = 'block';
+
+            } catch (error) {
+                //alert("Failed to get analysis. Check server console.");
+                alert("Error: " + error.message);
+                document.getElementById('loading').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

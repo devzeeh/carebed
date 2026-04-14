@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - CarebedDash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: {} }
+        }
+    </script>
+    <script src="components/footer.js" defer></script>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-950 flex flex-col items-center justify-center min-h-screen text-slate-900 dark:text-slate-200 m-0 p-4 font-sans transition-colors duration-500">
+    
+    <main class="w-full max-w-md p-8 bg-white dark:bg-[#0b1120] rounded-2xl shadow-sm dark:shadow-xl dark:shadow-black/20 border border-slate-200 dark:border-slate-800/80 transition-colors duration-500">
+
+        <header class="text-center mb-8 flex flex-col items-center">
+            <div class="flex items-center justify-center w-12 h-12 bg-teal-50 dark:bg-teal-900/30 rounded-full mb-4 border border-teal-100 dark:border-teal-800/50 shadow-sm transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                    stroke="currentColor" class="w-6 h-6 text-teal-600 dark:text-teal-400">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564A.562.562 0 0 1 9 14.437V9.564Z" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-900 dark:text-white tracking-tight mb-1">Welcome to Carebed</h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-medium">Please sign in to access your dashboard</p>
+        </header>
+
+        <form id="loginForm">
+            <div class="mb-5">
+                <label for="username" class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-slate-300">Username</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
+                            class="w-5 h-5">
+                            <path fill-rule="evenodd"
+                                d="M7.5 6a4.5 4.5 0 1 1 9 0 4.5 4.5 0 0 1-9 0ZM3.751 20.105a8.25 8.25 0 0 1 16.498 0 .75.75 0 0 1-.437.695A18.683 18.683 0 0 1 12 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 0 1-.437-.695Z"
+                                clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required
+                        pattern="[a-zA-Z]+"
+                        title="Only alphabetical characters are allowed."
+                        class="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 rounded-md text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-500 focus:border-transparent transition-colors">
+                </div>
+            </div>
+
+            <div class="mb-2">
+                <label for="password" class="block text-sm font-medium mb-1.5 text-gray-700 dark:text-slate-300">Password</label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-gray-400 dark:text-slate-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5">
+                            <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 0 0-5.25 5.25v3a3 3 0 0 0-3 3v6.75a3 3 0 0 0 3 3h10.5a3 3 0 0 0 3-3v-6.75a3 3 0 0 0-3-3v-3c0-2.9-2.35-5.25-5.25-5.25Zm3.75 8.25v-3a3.75 3.75 0 1 0-7.5 0v3h7.5Z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required
+                        class="w-full pl-10 pr-10 py-2 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 rounded-md text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-colors">
+                    
+                    <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 dark:text-slate-500 hover:text-gray-600 dark:hover:text-slate-300 transition-colors focus:outline-none">
+                        
+                        <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                        </svg>
+
+                        <svg id="eyeSlashIcon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 hidden">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                        </svg>
+
+                    </button>
+                </div>
+            </div>
+
+            <div id="errorMessage" class="hidden text-rose-500 text-xs mb-4 text-left">
+                Invalid credentials. Please try again.
+            </div>
+
+            <div class="flex justify-between items-center mb-6 text-sm flex items-center gap-2">
+                <a href="forgot-password.html" class="text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors">Forgot Password?</a>
+            </div>
+
+            <button type="submit" id="submitBtn"
+                class="w-full py-2.5 bg-slate-800 dark:bg-teal-600 text-white rounded-md text-sm font-medium hover:bg-slate-900 dark:hover:bg-teal-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-slate-900/10 dark:shadow-teal-900/30">
+                Sign In
+            </button>
+
+            <div class="text-center mt-6 text-sm">
+                <span class="text-gray-500 dark:text-slate-400">Don't have an account?</span>
+                <a href="register.html"
+                    class="text-gray-900 dark:text-teal-400 font-semibold hover:text-teal-600 dark:hover:text-teal-300 transition-colors ml-1">Create an account</a>
+            </div>
+        </form>
+    </main>
+
+    <care-footer></care-footer>
+
+    <script src="./assets/js/login.js"></script>
+</body>
+
+</html>
