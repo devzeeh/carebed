@@ -1,5 +1,13 @@
 # CareBed
 
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/devzeeh/carebed)
+[![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=blue)](https://www.mysql.com/)
+![Status](https://img.shields.io/badge/Status-Development-blue)
+![GitHub Created At](https://img.shields.io/github/created-at/devzeeh/carebed)
+![GitHub last commit](https://img.shields.io/github/last-commit/devzeeh/carebed)
+![GitHub language count](https://img.shields.io/github/languages/count/devzeeh/carebed)
+![GitHub Repo stars](https://img.shields.io/github/stars/devzeeh/carebed)
+
 A comprehensive patient care management system for healthcare providers.
 
 ## Overview
