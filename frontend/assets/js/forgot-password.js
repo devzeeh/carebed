@@ -18,6 +18,7 @@
     const instructionText = document.getElementById('instructionText');
 
     let savedContactInfo = '';
+    let currentResetToken = '';
 
     // Handle Request OTP Submission
     requestOtpForm.addEventListener('submit', (e) => {
@@ -42,27 +43,44 @@
             return;
         }
 
-        // Simulate API call to send OTP
+        // API call to send OTP
         requestSubmitBtn.disabled = true;
         requestSubmitBtn.textContent = 'Sending...';
 
-        setTimeout(() => {
+        fetch('/api/v1/forgot-password/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactInfo })
+        })
+        .then(res => res.json())
+        .then(data => {
             requestSubmitBtn.disabled = false;
             requestSubmitBtn.textContent = 'Send OTP';
-            
-            // Switch to OTP form
-            savedContactInfo = contactInfo;
-            requestOtpForm.classList.remove('block');
-            requestOtpForm.classList.add('hidden');
-            
-            verifyOtpForm.classList.remove('hidden');
-            verifyOtpForm.classList.add('block');
-            
-            instructionText.textContent = `OTP sent to ${contactInfo}. Please enter it below.`;
-            // Focus on OTP input
-            otpInput.focus();
 
-        }, 1500);
+            if (data.success) {
+                // Switch to OTP form
+                savedContactInfo = contactInfo;
+                requestOtpForm.classList.remove('block');
+                requestOtpForm.classList.add('hidden');
+                
+                verifyOtpForm.classList.remove('hidden');
+                verifyOtpForm.classList.add('block');
+                
+                instructionText.textContent = `OTP sent to ${contactInfo}. Please enter it below.`;
+                // Focus on OTP input
+                otpInput.focus();
+            } else {
+                requestErrorMessage.textContent = data.message || 'Failed to send OTP. Please try again.';
+                requestErrorMessage.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            requestSubmitBtn.disabled = false;
+            requestSubmitBtn.textContent = 'Send OTP';
+            requestErrorMessage.textContent = 'Network error. Please try again later.';
+            requestErrorMessage.classList.remove('hidden');
+            console.error('Error:', err);
+        });
     });
 
     // Handle Verify OTP Submission
@@ -78,16 +96,23 @@
             return;
         }
 
-        // Simulate API call to verify OTP
+        // API call to verify OTP
         verifySubmitBtn.disabled = true;
         verifySubmitBtn.textContent = 'Verifying...';
 
-        setTimeout(() => {
+        fetch('/api/v1/forgot-password/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactInfo: savedContactInfo, otp })
+        })
+        .then(res => res.json())
+        .then(data => {
             verifySubmitBtn.disabled = false;
             verifySubmitBtn.textContent = 'Verify & Reset Password';
-            
-            // For demo purposes, let's say "123456" is the correct OTP, otherwise error.
-            if (otp === '123456') {
+
+            if (data.success) {
+                currentResetToken = data.resetToken;
+                
                 verifyOtpForm.classList.remove('block');
                 verifyOtpForm.classList.add('hidden');
                 
@@ -97,13 +122,19 @@
                 instructionText.textContent = 'Please create a new password below.';
                 newPasswordInput.focus();
             } else {
-                verifyErrorMessage.textContent = 'Invalid OTP. Please try again or resend.';
+                verifyErrorMessage.textContent = data.message || 'Invalid OTP. Please try again or resend.';
                 verifyErrorMessage.classList.remove('hidden');
                 otpInput.value = '';
                 otpInput.focus();
             }
-
-        }, 1500);
+        })
+        .catch(err => {
+            verifySubmitBtn.disabled = false;
+            verifySubmitBtn.textContent = 'Verify & Reset Password';
+            verifyErrorMessage.textContent = 'Network error. Please try again later.';
+            verifyErrorMessage.classList.remove('hidden');
+            console.error('Error:', err);
+        });
     });
 
     // Handle Resend OTP
@@ -115,14 +146,38 @@
         resendOtpBtn.disabled = true;
         resendOtpBtn.textContent = 'Sending...';
         
-        // Simulate API delay
-        setTimeout(() => {
-            resendOtpBtn.textContent = 'Code Sent!';
+        // API call to resend OTP
+        fetch('/api/v1/forgot-password/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contactInfo: savedContactInfo })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                resendOtpBtn.textContent = 'Code Sent!';
+                setTimeout(() => {
+                    resendOtpBtn.textContent = 'Resend Code';
+                    resendOtpBtn.disabled = false;
+                }, 3000);
+            } else {
+                resendOtpBtn.textContent = 'Failed';
+                setTimeout(() => {
+                    resendOtpBtn.textContent = 'Resend Code';
+                    resendOtpBtn.disabled = false;
+                }, 3000);
+                verifyErrorMessage.textContent = data.message || 'Failed to resend OTP.';
+                verifyErrorMessage.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            resendOtpBtn.textContent = 'Error';
             setTimeout(() => {
                 resendOtpBtn.textContent = 'Resend Code';
                 resendOtpBtn.disabled = false;
             }, 3000);
-        }, 1500);
+            console.error('Error:', err);
+        });
     });
 
     // Handle Password Requirement Real-Time Validation
@@ -176,16 +231,38 @@
             return;
         }
 
-        // Simulate API call to reset password
+        // API call to reset password
         resetSubmitBtn.disabled = true;
         resetSubmitBtn.textContent = 'Saving...';
 
-        setTimeout(() => {
+        fetch('/api/v1/forgot-password/reset', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                contactInfo: savedContactInfo, 
+                resetToken: currentResetToken,
+                newPassword: newPassword
+            })
+        })
+        .then(res => res.json())
+        .then(data => {
             resetSubmitBtn.disabled = false;
             resetSubmitBtn.textContent = 'Save New Password';
-            
-            alert('Password reset successfully! You can now log in.');
-            window.location.href = 'login.html';
-        }, 1500);
+
+            if (data.success) {
+                alert('Password reset successfully! You can now log in.');
+                window.location.href = 'login.html';
+            } else {
+                resetErrorMessage.textContent = data.message || 'Failed to reset password. Please try again.';
+                resetErrorMessage.classList.remove('hidden');
+            }
+        })
+        .catch(err => {
+            resetSubmitBtn.disabled = false;
+            resetSubmitBtn.textContent = 'Save New Password';
+            resetErrorMessage.textContent = 'Network error. Please try again later.';
+            resetErrorMessage.classList.remove('hidden');
+            console.error('Error:', err);
+        });
     });
 });

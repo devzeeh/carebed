@@ -45,8 +45,8 @@
                         </svg>
                     </div>
                     <input type="text" id="username" name="username" placeholder="Enter your username" required
-                        pattern="[a-zA-Z]+"
-                        title="Only alphabetical characters are allowed."
+                        pattern="[a-zA-Z0-9\s@\.\+\-_]+"
+                        title="Characters, numbers, spaces, and basic symbols (@.+-_) are allowed."
                         class="w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900/50 rounded-md text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-500 focus:border-transparent transition-colors">
                 </div>
             </div>
@@ -83,7 +83,7 @@
             </div>
 
             <div class="flex justify-between items-center mb-6 text-sm flex items-center gap-2">
-                <a href="forgot-password.html" class="text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors">Forgot Password?</a>
+                <a href="/forgotpassword" class="text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white transition-colors">Forgot Password?</a>
             </div>
 
             <button type="submit" id="submitBtn"
@@ -93,7 +93,7 @@
 
             <div class="text-center mt-6 text-sm">
                 <span class="text-gray-500 dark:text-slate-400">Don't have an account?</span>
-                <a href="register.html"
+                <a href="/register"
                     class="text-gray-900 dark:text-teal-400 font-semibold hover:text-teal-600 dark:hover:text-teal-300 transition-colors ml-1">Create an account</a>
             </div>
         </form>
