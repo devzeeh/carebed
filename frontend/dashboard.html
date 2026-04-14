@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Carebed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: {} }
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-300 font-sans antialiased flex h-screen overflow-hidden transition-colors duration-500">
+    <!-- Sidebar -->
+    <aside class="w-64 bg-white dark:bg-[#0b1120] border-r border-slate-200 dark:border-slate-800/80 flex-col hidden md:flex shrink-0 transition-colors duration-500">
+        <div class="h-20 flex items-center px-6 border-b border-slate-100 dark:border-slate-800/80 shrink-0">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-8 h-8 text-teal-600 dark:text-teal-400 mr-3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 9.563C9 9.252 9.252 9 9.563 9h4.874c.311 0 .563.252.563.563v4.874c0 .311-.252.563-.563.563H9.564A.562.562 0 0 1 9 14.437V9.564Z" />
+            </svg>
+            <span class="text-xl font-extrabold tracking-tight text-slate-800 dark:text-white">CarebedDash</span>
+        </div>
+
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <a href="#" id="navOverviewBtn" class="flex items-center px-3 py-2.5 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 rounded-md font-medium text-sm transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg> Overview
+            </a>
+            <a href="#" class="flex items-center px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md font-medium text-sm transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg> Hardware Controls
+            </a>
+            <a href="#" class="flex items-center px-3 py-2.5 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-slate-900 dark:hover:text-white rounded-md font-medium text-sm transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> Data Logs
+            </a>
+        </nav>
+
+        <div class="p-4 border-t border-slate-200 dark:border-slate-800/80 shrink-0">
+            <button id="logoutBtn" class="flex items-center w-full px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-md font-medium text-sm transition-colors">
+                <svg class="w-5 h-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg> Sign Out
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-y-auto relative bg-slate-50 dark:bg-[#020617] transition-colors duration-500">
+        
+        <!-- Header -->
+        <header class="h-20 bg-white/80 dark:bg-[#0b1120]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between px-8 shrink-0 sticky top-0 z-10 transition-colors duration-500">
+            <h1 id="headerTitle" class="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">System Overview</h1>
+
+            <div class="flex items-center gap-5">
+                <button id="themeToggleBtn" class="p-2 mr-2 text-slate-500 hover:text-teal-600 dark:text-slate-400 dark:hover:text-teal-400 transition-colors rounded-full focus:outline-none">
+                    <svg id="moonIcon" class="w-6 h-6 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                    <svg id="sunIcon" class="w-6 h-6 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                </button>
+
+                <div class="flex items-center gap-3 bg-slate-50 dark:bg-slate-700 px-4 py-2 rounded-full border border-slate-100 dark:border-slate-600 hidden sm:flex transition-colors duration-200">
+                    <div class="w-3 h-3 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                    <span class="text-slate-600 dark:text-slate-300 font-medium text-sm">Node MCU: <span class="text-emerald-600 dark:text-emerald-400 font-bold ml-1">Online</span></span>
+                </div>
+                
+                <div class="h-8 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block"></div>
+
+                <div class="relative">
+                    <button id="profileMenuBtn" class="flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-700 p-1.5 pr-2 rounded-lg transition-colors focus:outline-none">
+                        <div class="w-9 h-9 rounded-full bg-teal-600 flex items-center justify-center text-white text-sm font-bold shadow-sm">AD</div>
+                        <div class="text-left hidden md:block">
+                            <p class="text-sm font-bold text-slate-700 dark:text-white leading-none mb-1">Admin User</p>
+                            <p class="text-[11px] font-semibold text-teal-600 dark:text-teal-400 uppercase tracking-wider leading-none">Head Nurse</p>
+                        </div>
+                    </button>
+                    <!-- Full Profile Dropdown -->
+                    <div id="profileDropdown" class="hidden absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden z-50 origin-top-right transition-all">
+                        <div class="px-4 py-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
+                            <p class="text-sm font-bold text-slate-800 dark:text-white">Admin User</p>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 font-medium truncate mt-0.5">admin@carebed.local</p>
+                            <div class="mt-2 inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-400 uppercase tracking-wider">Administrator</div>
+                        </div>
+
+                        <div class="py-1">
+                            <button id="openSettingsBtn" class="w-full text-left px-4 py-2.5 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 hover:text-teal-700 dark:hover:text-teal-400 transition-colors flex items-center gap-2 font-medium">
+                                <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                Account Settings
+                            </button>
+                        </div>
+
+                        <div class="py-1 border-t border-slate-100 dark:border-slate-700">
+                            <button id="dropdownLogoutBtn" class="w-full text-left px-4 py-2.5 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 transition-colors flex items-center gap-2 font-medium">
+                                <svg class="w-4 h-4 text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                                </svg>
+                                Secure Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div id="dashboardView" class="p-8">
+            
+            <!-- Patient Status Banner -->
+            <div class="bg-indigo-50 dark:bg-gradient-to-br dark:from-indigo-950/50 dark:to-[#0b1120] rounded-2xl border border-indigo-100 dark:border-indigo-500/20 p-6 mb-6 flex flex-col md:flex-row items-center justify-between gap-6 transition-all duration-300 shadow-sm dark:shadow-none bg-opacity-50">
+                <div class="flex items-center gap-5">
+                    <div class="w-16 h-16 rounded-full bg-indigo-200 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 flex items-center justify-center text-2xl font-bold shadow-inner">
+                        PT
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-extrabold text-slate-800 dark:text-slate-100">Patient Profile</h2>
+                        <div class="mt-2 flex flex-wrap items-center gap-4 text-sm font-medium">
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-500 dark:text-slate-400">Position:</span>
+                                <span id="patientStatus" class="px-2.5 py-1 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-md text-indigo-700 dark:text-indigo-400 shadow-sm transition-all duration-300">
+                                    In Bed
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-slate-500 dark:text-slate-400">Wetness Alert:</span>
+                                <span id="wetnessStatus" class="px-2.5 py-1 bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 rounded-md text-emerald-600 dark:text-emerald-400 shadow-sm transition-all duration-300">
+                                    Dry
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <button id="exportPdfBtn" class="flex-1 md:flex-none flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-600/50 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors font-medium backdrop-blur-sm">
+                        <svg class="w-5 h-5 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> 
+                        Export PDF
+                    </button>
+                    <button id="sosBtn" class="flex-1 md:flex-none flex items-center gap-2 justify-center px-4 py-2.5 bg-rose-600 dark:bg-rose-500 text-white rounded-lg shadow-md dark:shadow-rose-500/20 hover:bg-rose-700 dark:hover:bg-rose-600 transition-colors font-bold animate-pulse">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        SOS
+                    </button>
+                </div>
+            </div>
+
+            <!-- Vitals Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <!-- HR -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between transition-colors">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Heart Rate</p>
+                        <div class="flex items-baseline gap-1"><span class="text-2xl font-bold text-slate-800 dark:text-white" id="bpmCurrent">72</span><span class="text-sm text-slate-500">BPM</span></div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-900/30 flex items-center justify-center text-rose-500 dark:text-rose-400">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                    </div>
+                </div>
+                <!-- Angle -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between transition-colors">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Backrest Angle</p>
+                        <div class="flex items-baseline gap-1"><span class="text-2xl font-bold text-slate-800 dark:text-white" id="angleCurrent">45</span><span class="text-sm text-slate-500">°</span></div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-900/30 flex items-center justify-center text-teal-600 dark:text-teal-400">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg>
+                    </div>
+                </div>
+                <!-- Temp -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between transition-colors">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Room Temp</p>
+                        <div class="flex items-baseline gap-1"><span class="text-2xl font-bold text-slate-800 dark:text-white" id="tempCurrent">23.5</span><span class="text-sm text-slate-500">°C</span></div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-amber-50 dark:bg-amber-900/30 flex items-center justify-center text-amber-500 dark:text-amber-400">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                    </div>
+                </div>
+                <!-- Load -->
+                <div class="bg-white dark:bg-slate-800 p-5 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 flex items-center justify-between transition-colors">
+                    <div>
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">System Load</p>
+                        <div class="flex items-baseline gap-1"><span class="text-2xl font-bold text-slate-800 dark:text-white" id="loadCurrent">1.2</span><span class="text-sm text-slate-500">A</span></div>
+                    </div>
+                    <div class="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                <!-- Large Chart View -->
+                <div class="bg-white dark:bg-[#0f172a] p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800/80 lg:col-span-2 transition-colors">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-sm font-semibold text-slate-800 dark:text-slate-100">Live Vitals Trend (Heart Rate)</h3>
+                        <span class="px-2.5 py-1 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span> Streaming
+                        </span>
+                    </div>
+                    <div class="relative h-64 w-full">
+                        <canvas id="vitalsChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Hardware Controls Side Panel -->
+                <div class="bg-white dark:bg-[#0f172a] p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800/80 flex flex-col transition-colors">
+                    <h3 class="text-sm font-semibold text-slate-800 dark:text-white mb-4">Hardware Controls</h3>
+                    <div class="space-y-4 flex-1">
+                        <div class="flex justify-between items-center bg-slate-50 dark:bg-slate-700/50 p-3 rounded border border-slate-100 dark:border-slate-600">
+                            <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Backrest</span>
+                            <div class="flex gap-2">
+                                <button class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors shadow-sm"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg></button>
+                                <button class="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600 transition-colors shadow-sm"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" /></svg></button>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="w-full mt-4 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-md shadow-sm transition-colors flex items-center justify-center gap-2">
+                        EMERGENCY HALT
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+
+        <!-- Settings View (Hidden) -->
+        <div id="settingsView" class="p-8 max-w-5xl mx-auto w-full hidden">
+            <h2 class="text-2xl font-bold dark:text-white">Account Settings</h2>
+        </div>
+
+    </main>
+
+    <!-- Logout Modal -->
+    <div id="logoutModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm transition-opacity">
+        <div class="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-sm overflow-hidden transform transition-all border border-slate-200 dark:border-slate-700">
+            <div class="p-6">
+                <div class="w-12 h-12 rounded-full bg-rose-100 dark:bg-rose-900/40 flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900 dark:text-white mb-2">Confirm Sign Out</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400">Are you sure you want to sign out? Any unsaved hardware configurations may be lost.</p>
+            </div>
+            <div class="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex justify-end gap-3">
+                <button id="cancelLogoutBtn" class="px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 focus:outline-none transition-colors">Cancel</button>
+                <button id="confirmLogoutBtn" class="px-4 py-2.5 text-sm font-medium text-white bg-rose-600 rounded-lg hover:bg-rose-700 focus:outline-none transition-colors shadow-sm">Yes, Sign Out</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/js/dashboard.js"></script>
+</body>
+</html>
