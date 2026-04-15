@@ -73,10 +73,23 @@ func main() {
 	mux.HandleFunc("POST /api/v1/forgot-password/verify", authHandler.VerifyOTPHandler)
 	mux.HandleFunc("POST /api/v1/forgot-password/reset", authHandler.ResetPasswordHandler)
 
-	// API endpoints for dashboard, logout, and profile
-	//mux.HandleFunc("GET /dashboard/{id}", authHandler.Dashboard)
-	//mux.HandleFunc("GET /profile/{id}", authHandler.ProfileView)
-	//mux.HandleFunc("GET /logout", authHandler.LogoutView)
+	// Admin API routes
+	mux.HandleFunc("GET /api/admin/users", authHandler.AdminUsersGetHandler)
+	mux.HandleFunc("POST /api/admin/users", authHandler.AdminUsersPostHandler)
+	mux.HandleFunc("DELETE /api/admin/users/", authHandler.AdminUsersDeleteHandler)
+	mux.HandleFunc("PUT /api/admin/users/password", authHandler.AdminUsersPasswordPutHandler)
+	
+	mux.HandleFunc("GET /api/admin/patients", authHandler.AdminPatientsGetHandler)
+	mux.HandleFunc("POST /api/admin/patients", authHandler.AdminPatientsPostHandler)
+	mux.HandleFunc("GET /api/admin/vitals", authHandler.AdminVitalsGetHandler)
+
+	// Admin UI Route
+	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
+		authHandler.Tpl.ExecuteTemplate(w, "admin.html", nil)
+	})
+
+	// User UI Route
+	mux.HandleFunc("GET /dashboard", authHandler.Dashboard)
 
 	// wrap mux with custom handler for root redirect
 	customHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

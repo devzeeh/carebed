@@ -40,6 +40,7 @@ func (h *Handler) LoginAuthHandler(w http.ResponseWriter, r *http.Request) {
 		hash     string       // password hash from database
 		id       string       // user id from database
 		username string       // username from database
+		role     string       // role from database
 	)
 
 	// Decode the request body into the LoginRequest struct
@@ -79,8 +80,8 @@ func (h *Handler) LoginAuthHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if user exists in the database. Use "BINARY" to make the query case-sensitive.
-	stmt := "SELECT id, username, password_hash FROM users WHERE BINARY username = ? OR email = ? OR phone = ?"
-	err = h.DB.QueryRow(stmt, req.Username, req.Username, req.Username).Scan(&id, &username, &hash)
+	stmt := "SELECT id, username, password_hash, role FROM users WHERE BINARY username = ? OR email = ? OR phone = ?"
+	err = h.DB.QueryRow(stmt, req.Username, req.Username, req.Username).Scan(&id, &username, &hash, &role)
 
 	// User not found
 	if err != nil {
@@ -106,15 +107,15 @@ func (h *Handler) LoginAuthHandler(w http.ResponseWriter, r *http.Request) {
 	// Success
 	log.Printf("Login success for user: %s", req.Username)
 
-	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.LoginResponse{
-		Success: true,
-		Message: "Login successful",
-		User: []jsonwrite.User{
-			{
-				ID:       id,
-				Username: username,
-			},
+	jsonwrite.WriteJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Login successful",
+		"user": map[string]interface{}{
+			"id":       id,
+			"username": username,
+			"role":     role,
 		},
+		"token": "mock-jwt-token-for-demo",
 	})
 }
 

@@ -50,18 +50,25 @@ document.getElementById('loginForm').addEventListener('submit', async function (
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                //'Accept': 'application/json'
             },
             body: JSON.stringify(payload)
         });
 
-        const data = await response.json();
+        let data;
+        let isJson = true;
+        try {
+            data = await response.json();
+        } catch (e) {
+            isJson = false;
+            data = { message: await response.text(), success: response.ok };
+        }
 
-        // Check if the login was successful based on your Go LoginResponse struct
-        if (!data.success) {
+        // Check if the login was successful depending on response status ok
+        if (!response.ok) {
             // Show the error message returned by Go
-            errorMessage.textContent = data.message;
-            errorMessage.style.display = 'block';
+            errorMessage.textContent = data.message || "Invalid credentials";
+            errorMessage.classList.add('block');
+            errorMessage.classList.remove('hidden');
 
             const msg = data.message.toLowerCase();
             if (msg.includes('username') || msg.includes('phone') || msg.includes('email') || msg.includes('user not found')) {
@@ -79,8 +86,13 @@ document.getElementById('loginForm').addEventListener('submit', async function (
             }
         } else {
             // SUCCESS! 
-            // You can redirect the user to a secure page, or save their token.
-            window.location.href = "/dashboard";
+            // Store token and role for admin logic
+            localStorage.setItem('auth_token', data.token);
+            if (data.user && data.user.role === 'admin') {
+                window.location.href = "/admin";
+            } else {
+                window.location.href = "/dashboard";
+            }
         }
     } catch (error) {
         console.error('LOGIN ERROR:', error);
