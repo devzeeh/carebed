@@ -2,6 +2,7 @@ package authentication
 
 import (
 	jsonwrite "carebed/backend/internal/pkg"
+	"carebed/backend/internal/pkg/validate"
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
@@ -48,6 +49,7 @@ type ResetPasswordPayload struct {
 	ResetToken  string `json:"resetToken" validate:"required"`
 	NewPassword string `json:"newPassword" validate:"required,min=8"`
 }
+
 
 func generateOTP() (string, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
@@ -191,7 +193,7 @@ func (h *Handler) RequestOTPHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate payload
-	if err := validate.Struct(payload); err != nil {
+	if err := validate.ValidateStruct(payload); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
 			Message: "Contact info missing or invalid",
@@ -257,7 +259,7 @@ func (h *Handler) VerifyOTPHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validate.Struct(payload); err != nil {
+	if err := validate.ValidateStruct(payload); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
 			Message: "Contact info and 6-digit OTP are required",
@@ -326,7 +328,7 @@ func (h *Handler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := validate.Struct(payload); err != nil {
+	if err := validate.ValidateStruct(payload); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
 			Message: "All fields are required and password must be at least 8 characters",

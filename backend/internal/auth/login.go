@@ -7,13 +7,11 @@ import (
 	"net/http"
 
 	jsonwrite "carebed/backend/internal/pkg"
+	"carebed/backend/internal/pkg/validate"
 
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 )
-
-// validate is a validator instance to validate the request data
-var validate = validator.New()
 
 // LoginRequest struct to hold the request data
 type LoginRequest struct {
@@ -52,7 +50,7 @@ func (h *Handler) LoginAuthHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Login attempt for: %s", req.Username)
 
 	// Validate the request data
-	err := validate.Struct(req)
+	err := validate.ValidateStruct(req)
 	if err != nil {
 		log.Printf("Validation failed: %v", err)
 
