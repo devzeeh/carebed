@@ -63,33 +63,30 @@ func main() {
 	fileServer := http.FileServer(http.Dir("../frontend/assets"))
 	mux.Handle("/assets/", http.StripPrefix("/assets/", fileServer))
 
-	// API endpoints for login, register, and forgot password
+	// API endpoints for login, users and forgot password
 	mux.HandleFunc("POST /api/v1/loginauth", authHandler.LoginAuthHandler) // Login authentication endpoint
 	mux.HandleFunc("GET /login", authHandler.LoginView)
-	//mux.HandleFunc("GET /register", authHandler.RegisterView)
-	//mux.HandleFunc("POST /api/v1/register", authHandler.RegisterAuthHandler)
+	mux.HandleFunc("GET /dashboard", authHandler.Dashboard)
 	mux.HandleFunc("GET /forgot-password", authHandler.ForgotPasswordView)
 	mux.HandleFunc("POST /api/v1/forgot-password/request", authHandler.RequestOTPHandler)
 	mux.HandleFunc("POST /api/v1/forgot-password/verify", authHandler.VerifyOTPHandler)
 	mux.HandleFunc("POST /api/v1/forgot-password/reset", authHandler.ResetPasswordHandler)
 
 	// Admin API routes
-	mux.HandleFunc("GET /api/admin/users", authHandler.AdminUsersGetHandler)
-	mux.HandleFunc("POST /api/admin/users", authHandler.AdminUsersPostHandler)
-	mux.HandleFunc("DELETE /api/admin/users/", authHandler.AdminUsersDeleteHandler)
-	mux.HandleFunc("PUT /api/admin/users/password", authHandler.AdminUsersPasswordPutHandler)
+	mux.HandleFunc("GET /api/v1/admin/users", authHandler.AdminGetUsersHandler)
+	mux.HandleFunc("POST /api/v1/admin/users", authHandler.AdminAddUsersHandler)
+	mux.HandleFunc("DELETE /api/v1/admin/users/", authHandler.AdminUsersDeleteHandler)
+	mux.HandleFunc("PUT /api/v1/admin/users/password", authHandler.AdminUpdatePasswordHandler)
 	
-	mux.HandleFunc("GET /api/admin/patients", authHandler.AdminPatientsGetHandler)
-	mux.HandleFunc("POST /api/admin/patients", authHandler.AdminPatientsPostHandler)
-	mux.HandleFunc("GET /api/admin/vitals", authHandler.AdminVitalsGetHandler)
+	// Admin API routes for patients and vitals
+	mux.HandleFunc("GET /api/v1/admin/patients", authHandler.AdminGetPatientsHandler)
+	mux.HandleFunc("POST /api/v1/admin/patients", authHandler.AdminAddPatientsHandler)
+	mux.HandleFunc("GET /api/v1/admin/vitals", authHandler.AdminGetVitalsHandler)
 
 	// Admin UI Route
 	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
 		authHandler.Tpl.ExecuteTemplate(w, "admin.html", nil)
 	})
-
-	// User UI Route
-	mux.HandleFunc("GET /dashboard", authHandler.Dashboard)
 
 	// wrap mux with custom handler for root redirect
 	customHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -1,7 +1,7 @@
 package authentication
 
 import (
-	jsonwrite "carebed/backend/internal/pkg"
+	jsonwrite "carebed/backend/internal/pkg/json"
 	"carebed/backend/internal/pkg/validate"
 	"crypto/rand"
 	"encoding/json"
