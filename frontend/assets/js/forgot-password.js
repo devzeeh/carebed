@@ -251,7 +251,7 @@
 
             if (data.success) {
                 alert('Password reset successfully! You can now log in.');
-                window.location.href = 'login.html';
+                window.location.href = '/login';
             } else {
                 resetErrorMessage.textContent = data.message || 'Failed to reset password. Please try again.';
                 resetErrorMessage.classList.remove('hidden');

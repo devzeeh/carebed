@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (response.ok) {
                 alert("Account created successfully! Redirecting to login...");
-                window.location.href = 'login.html';
+                window.location.href = '/login';
             } else {
                 const errText = await response.text();
                 showError(errText || 'Registration failed. Username may be taken.');

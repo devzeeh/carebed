@@ -334,6 +334,7 @@ func (h *Handler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check if reset token is valid
 	val, ok := tokenCache.Load(payload.ContactInfo)
 	if !ok {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{

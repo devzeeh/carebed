@@ -1,3 +1,8 @@
+const authToken = localStorage.getItem('auth_token');
+if (!authToken) {
+    window.location.href = '/login';
+}
+
 document.addEventListener("DOMContentLoaded", () => {
 
     // PROFILE DROPDOWN LOGIC
@@ -65,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     confirmLogoutBtn.addEventListener('click', () => {
         // Here you would clear Auth Tokens from localStorage
-        window.location.href = 'login.html';
+        window.location.href = '/login';
     });
 
     // CHART.JS INITIALIZATION
