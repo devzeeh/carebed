@@ -6,22 +6,12 @@ import (
 	"net/http"
 	"strings"
 
-	jsonwrite "carebed/backend/internal/pkg"
+	jsonwrite "carebed/backend/internal/pkg/json"
+	"carebed/backend/internal/pkg/validate"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-type Users struct {
-	ID       int    `json:"id" db:"id"`
-	FullName string `json:"fullname" db:"fullname"`
-	Username string `json:"username" db:"username"`
-	Password string `json:"password" db:"password_hash"`
-	Email    string `json:"email" db:"email"`
-	Phone    string `json:"phone" db:"phone"`
-	Role     string `json:"role" db:"role"`
-}
-
-// Patient struct to store patient information
 type Patient struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -29,7 +19,6 @@ type Patient struct {
 	CreatedAt string `json:"created_at"`
 }
 
-// Vital struct to store vital signs
 type Vital struct {
 	ID         int    `json:"id"`
 	PatientID  int    `json:"patient_id"`
@@ -37,7 +26,6 @@ type Vital struct {
 	RecordedAt string `json:"recorded_at"`
 }
 
-// Admin user struct to store admin user information
 type AdminUser struct {
 	ID       int    `json:"id" db:"id" `
 	FullName string `json:"fullname" db:"fullname"`
@@ -45,7 +33,8 @@ type AdminUser struct {
 	Role     string `json:"role" db:"role"`
 }
 
-// Admin API endpoints Admin users GET handler Get all users
+// Admin API endpoints
+
 func (h *Handler) AdminUsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query("SELECT id, fullname, username, role FROM users")
 	if err != nil {
@@ -58,6 +47,7 @@ func (h *Handler) AdminUsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer rows.Close()
 
+	// Iterate through the result set and build a slice of AdminUser structs
 	users := []AdminUser{}
 	for rows.Next() {
 		var u AdminUser
@@ -66,13 +56,18 @@ func (h *Handler) AdminUsersGetHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		users = append(users, u)
 	}
+	// Return the list of users as JSON
 	jsonwrite.WriteJSON(w, http.StatusOK, users)
 }
 
-// Admin users POST handler Create a new user
 func (h *Handler) AdminUsersPostHandler(w http.ResponseWriter, r *http.Request) {
-	var req Users
-	// Decode the request body into the LoginRequest struct
+	var req struct {
+		FullName string `json:"fullname"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+		Email    string `json:"email"`
+		Phone    string `json:"phone"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -81,6 +76,21 @@ func (h *Handler) AdminUsersPostHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Validate the request data (you can use a validation library or custom logic here)
+	err := validate.ValidateStruct(req)
+	if err != nil {
+		log.Printf("Validation failed: %v", err)
+
+		// Set a default generic message just in case
+		errorMessage := "Invalid input provided."
+		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Validation failed: " + errorMessage,
+		})
+		return
+	}
+
+	// Generate a bcrypt hash of the password
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
 	if err != nil {
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
@@ -148,9 +158,11 @@ func (h *Handler) AdminUsersDeleteHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 
-// Admin users Update Password handler
-func (h *Handler) AdminUsersUpdatePasswordHandler(w http.ResponseWriter, r *http.Request) {
-	var req Users
+func (h *Handler) AdminUsersPasswordPutHandler(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ID       int    `json:"id"`
+		Password string `json:"password"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -159,6 +171,17 @@ func (h *Handler) AdminUsersUpdatePasswordHandler(w http.ResponseWriter, r *http
 		return
 	}
 
+	// Validate the request data (you can use a validation library or custom logic here)
+	if err := validate.ValidateStruct(req); err != nil {
+		log.Printf("Validation failed: %v", err)
+		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Password must be at least 8 characters long",
+		})
+		return
+	}
+
+	// Generate a bcrypt hash of the new password
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
 	_, err := h.DB.Exec("UPDATE users SET password_hash = ? WHERE id = ?", hash, req.ID)
 	if err != nil {
@@ -177,7 +200,6 @@ func (h *Handler) AdminUsersUpdatePasswordHandler(w http.ResponseWriter, r *http
 	})
 }
 
-// Admin patients GET handler Get all patients
 func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query("SELECT id, name, user_id, created_at FROM patients")
 	if err != nil {
@@ -190,6 +212,7 @@ func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request
 	}
 	defer rows.Close()
 
+	// Iterate through the result set and build a slice of Patient structs
 	pts := []Patient{}
 	for rows.Next() {
 		var p Patient
@@ -201,9 +224,11 @@ func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request
 	jsonwrite.WriteJSON(w, http.StatusOK, pts)
 }
 
-// Admin patients POST handler Create a new patient
 func (h *Handler) AdminPatientsPostHandler(w http.ResponseWriter, r *http.Request) {
-	var p Patient
+	var p struct {
+		Name   string `json:"name"`
+		UserID *int   `json:"user_id"`
+	}
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -212,6 +237,16 @@ func (h *Handler) AdminPatientsPostHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// Validate the request data
+	if err := validate.ValidateStruct(p); err != nil {
+		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Invalid request data",
+		})
+		return
+	}
+
+	// Insert the new patient into the database
 	_, err := h.DB.Exec("INSERT INTO patients (name, user_id) VALUES (?, ?)", p.Name, p.UserID)
 	if err != nil {
 		log.Println("Error adding patient", err)
@@ -228,7 +263,8 @@ func (h *Handler) AdminPatientsPostHandler(w http.ResponseWriter, r *http.Reques
 	})
 }
 
-func (h *Handler) AdminVitalsGetHandler(w http.ResponseWriter, r *http.Request) {
+// AdminGetVitalsHandler retrieves all vitals for admin view
+func (h *Handler) AdminGetVitalsHandler(w http.ResponseWriter, r *http.Request) {
 	// Ensure there's some mock data if none exists
 	h.DB.Exec("INSERT IGNORE INTO vitals (patient_id, bpm) SELECT id, 75 FROM patients WHERE NOT EXISTS (SELECT 1 FROM vitals WHERE vitals.patient_id = patients.id)")
 

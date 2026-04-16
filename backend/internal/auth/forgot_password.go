@@ -1,8 +1,12 @@
 package authentication
 
 import (
+<<<<<<< HEAD
 	jsonwrite "carebed/backend/internal/pkg"
 	smtpbody "carebed/backend/internal/pkg/smtpBody"
+=======
+	jsonwrite "carebed/backend/internal/pkg/json"
+>>>>>>> e5649f27cb1c6dd9035d8fc55117f8aa2e09667e
 	"carebed/backend/internal/pkg/validate"
 	"crypto/rand"
 	"encoding/json"

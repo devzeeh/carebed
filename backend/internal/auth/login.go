@@ -6,7 +6,7 @@ import (
 	"log"
 	"net/http"
 
-	jsonwrite "carebed/backend/internal/pkg"
+	jsonwrite "carebed/backend/internal/pkg/json"
 	"carebed/backend/internal/pkg/validate"
 
 	"github.com/go-playground/validator/v10"
