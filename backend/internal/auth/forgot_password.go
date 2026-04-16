@@ -96,7 +96,7 @@ func sendOTPEmail(toAddress, otp string) error {
 }
 
 // sendPasswordChangedEmail sends a confirmation email after a password change.
-func sendPasswordChangedEmail(toAddress string) error {
+func sendPasswordChangedEmail(toAddress string, name string) error {
 	smtpHost := os.Getenv("SMTP_HOST")
 	smtpPort := os.Getenv("SMTP_PORT")
 	smtpUser := os.Getenv("SMTP_USER")
@@ -116,7 +116,7 @@ func sendPasswordChangedEmail(toAddress string) error {
 	m.SetHeader("To", toAddress)
 	m.SetHeader("Subject", "Carebed - Password Changed Successfully")
 
-	m.SetBody("text/html", smtpbody.PasswordChangedBody())
+	m.SetBody("text/html", fmt.Sprintf(smtpbody.PasswordChangedBody(), name))
 
 	d := gomail.NewDialer(smtpHost, portNum, smtpUser, smtpPass)
 	return d.DialAndSend(m)
@@ -329,7 +329,7 @@ func (h *Handler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
 	tokenCache.Delete(payload.ContactInfo)
 
 	// Send successful reset email and log it
-	if err := sendPasswordChangedEmail(payload.ContactInfo); err != nil {
+	if err := sendPasswordChangedEmail(payload.ContactInfo, payload.ContactInfo); err != nil {
 		log.Printf("Warning: Failed to send password change confirmation email: %v", err)
 	} else {
 		log.Printf("Password changed successfully email sent to %s", payload.ContactInfo)

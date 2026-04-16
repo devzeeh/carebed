@@ -55,6 +55,7 @@ func PasswordChangedBody() string {
         <div class="logo">Care<span>bed</span></div>
         <h2 class="title">Password Changed Successfully</h2>
         <p class="text">Your Carebed account password has been successfully changed. You can now log in with your new password.</p>
+        <p class="text">Hello %s,</p>
         <p class="warn">If you did not change your password, please contact our support team immediately.</p>
         <div class="footer">
             &copy; 2026 Carebed. All rights reserved.<br>

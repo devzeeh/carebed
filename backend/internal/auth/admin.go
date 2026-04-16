@@ -12,6 +12,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type Users struct {
+	ID       int    `json:"id" db:"id"`
+	FullName string `json:"fullname" db:"fullname"`
+	Username string `json:"username" db:"username"`
+	Password string `json:"password" db:"password_hash"`
+	Email    string `json:"email" db:"email"`
+	Phone    string `json:"phone" db:"phone"`
+	Role     string `json:"role" db:"role"`
+}
+
+// Patient struct to store patient information
 type Patient struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -19,6 +30,7 @@ type Patient struct {
 	CreatedAt string `json:"created_at"`
 }
 
+// Vital struct to store vital signs
 type Vital struct {
 	ID         int    `json:"id"`
 	PatientID  int    `json:"patient_id"`
@@ -26,6 +38,7 @@ type Vital struct {
 	RecordedAt string `json:"recorded_at"`
 }
 
+// Admin user struct to store admin user information
 type AdminUser struct {
 	ID       int    `json:"id" db:"id" `
 	FullName string `json:"fullname" db:"fullname"`
@@ -33,8 +46,7 @@ type AdminUser struct {
 	Role     string `json:"role" db:"role"`
 }
 
-// Admin API endpoints
-
+// Admin API endpoints Admin users GET handler Get all users
 func (h *Handler) AdminUsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query("SELECT id, fullname, username, role FROM users")
 	if err != nil {
@@ -60,14 +72,10 @@ func (h *Handler) AdminUsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	jsonwrite.WriteJSON(w, http.StatusOK, users)
 }
 
+// Admin users POST handler Create a new user
 func (h *Handler) AdminUsersPostHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		FullName string `json:"fullname"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-		Email    string `json:"email"`
-		Phone    string `json:"phone"`
-	}
+	var req Users
+	// Decode the request body into the LoginRequest struct
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -158,11 +166,9 @@ func (h *Handler) AdminUsersDeleteHandler(w http.ResponseWriter, r *http.Request
 	})
 }
 
-func (h *Handler) AdminUsersPasswordPutHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		ID       int    `json:"id"`
-		Password string `json:"password"`
-	}
+// Admin users Update Password handler
+func (h *Handler) AdminUsersUpdatePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var req Users
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -200,6 +206,7 @@ func (h *Handler) AdminUsersPasswordPutHandler(w http.ResponseWriter, r *http.Re
 	})
 }
 
+// Admin patients GET handler Get all patients
 func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query("SELECT id, name, user_id, created_at FROM patients")
 	if err != nil {
@@ -224,11 +231,9 @@ func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request
 	jsonwrite.WriteJSON(w, http.StatusOK, pts)
 }
 
+// Admin patients POST handler Create a new patient
 func (h *Handler) AdminPatientsPostHandler(w http.ResponseWriter, r *http.Request) {
-	var p struct {
-		Name   string `json:"name"`
-		UserID *int   `json:"user_id"`
-	}
+	var p Patient
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
