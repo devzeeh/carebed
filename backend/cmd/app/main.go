@@ -77,8 +77,8 @@ func main() {
 	mux.HandleFunc("GET /api/admin/users", authHandler.AdminUsersGetHandler)
 	mux.HandleFunc("POST /api/admin/users", authHandler.AdminUsersPostHandler)
 	mux.HandleFunc("DELETE /api/admin/users/", authHandler.AdminUsersDeleteHandler)
-	mux.HandleFunc("PUT /api/admin/users/password", authHandler.AdminUsersPasswordPutHandler)
-	
+	mux.HandleFunc("PUT /api/admin/users/password", authHandler.AdminUsersUpdatePasswordHandler)
+
 	mux.HandleFunc("GET /api/admin/patients", authHandler.AdminPatientsGetHandler)
 	mux.HandleFunc("POST /api/admin/patients", authHandler.AdminPatientsPostHandler)
 	mux.HandleFunc("GET /api/admin/vitals", authHandler.AdminVitalsGetHandler)

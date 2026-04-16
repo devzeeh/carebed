@@ -2,6 +2,7 @@ package authentication
 
 import (
 	jsonwrite "carebed/backend/internal/pkg"
+	smtpbody "carebed/backend/internal/pkg/smtpBody"
 	"carebed/backend/internal/pkg/validate"
 	"crypto/rand"
 	"encoding/json"
@@ -18,39 +19,44 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
+// OTPCacheItem struct to store OTP and its expiration time
 type OTPCacheItem struct {
 	OTP       string
 	ExpiresAt time.Time
 }
 
+// ResetTokenItem struct to store reset token and its expiration time
 type ResetTokenItem struct {
 	Token     string
 	ExpiresAt time.Time
 }
 
+// In-memory cache for OTPs and reset tokens.
+// In a real application, you'd use Redis or similar
 var (
-	// In-memory cache for OTPs and reset tokens.
-	// In a real application, you'd use Redis or similar.
 	otpCache   sync.Map
 	tokenCache sync.Map
 )
 
+// RequestOTPPayload struct for OTP request
 type RequestOTPPayload struct {
 	ContactInfo string `json:"contactInfo" validate:"required"`
 }
 
+// VerifyOTPPayload struct for OTP verification
 type VerifyOTPPayload struct {
 	ContactInfo string `json:"contactInfo" validate:"required"`
 	OTP         string `json:"otp" validate:"required,len=6"`
 }
 
+// ResetPasswordPayload struct for password reset
 type ResetPasswordPayload struct {
 	ContactInfo string `json:"contactInfo" validate:"required"`
 	ResetToken  string `json:"resetToken" validate:"required"`
 	NewPassword string `json:"newPassword" validate:"required,min=8"`
 }
 
-
+// generateOTP generates a random 6-digit OTP
 func generateOTP() (string, error) {
 	n, err := rand.Int(rand.Reader, big.NewInt(1000000))
 	if err != nil {
@@ -73,6 +79,7 @@ func sendOTPEmail(toAddress, otp string) error {
 
 	portNum, err := strconv.Atoi(smtpPort)
 	if err != nil {
+		log.Println("Error converting SMTP port to integer:", err)
 		portNum = 587 // Default fallback port
 	}
 
@@ -81,39 +88,7 @@ func sendOTPEmail(toAddress, otp string) error {
 	m.SetHeader("To", toAddress)
 	m.SetHeader("Subject", "Carebed - Password Reset OTP")
 
-	htmlBody := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 0; color: #0f172a; }
-        .container { max-width: 500px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .logo { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 24px; text-align: center; }
-        .logo span { color: #0d9488; }
-        .title { font-size: 20px; font-weight: 600; color: #1e293b; margin-top: 0; margin-bottom: 12px; text-align: center; }
-        .text { font-size: 15px; color: #475569; margin-bottom: 24px; line-height: 1.6; text-align: center; }
-        .otp-container { background: #f0fdfa; border: 1px dashed #5eead4; padding: 24px; text-align: center; border-radius: 8px; margin-bottom: 24px; }
-        .otp-code { font-size: 32px; font-weight: 800; color: #0f766e; letter-spacing: 8px; margin: 0; }
-        .warn { font-size: 14px; color: #64748b; text-align: center; margin-bottom: 32px; }
-        .footer { padding-top: 24px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #94a3b8; text-align: center; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="logo">Care<span>bed</span></div>
-        <h2 class="title">Password Reset</h2>
-        <p class="text">We received a request to reset your Carebed account password. Here is your securely generated verification code:</p>
-        <div class="otp-container">
-            <h1 class="otp-code">%s</h1>
-        </div>
-        <p class="warn">This code is valid for <strong>5 minutes</strong>. If you didn't request this, you can safely ignore this email.</p>
-        <div class="footer">
-            &copy; 2026 Carebed. All rights reserved.<br>
-            Computer Engineering Thesis Project
-        </div>
-    </div>
-</body>
-</html>`, otp)
-	m.SetBody("text/html", htmlBody)
+	m.SetBody("text/html", fmt.Sprintf(smtpbody.OTPBody(), otp))
 
 	d := gomail.NewDialer(smtpHost, portNum, smtpUser, smtpPass)
 
@@ -141,34 +116,7 @@ func sendPasswordChangedEmail(toAddress string) error {
 	m.SetHeader("To", toAddress)
 	m.SetHeader("Subject", "Carebed - Password Changed Successfully")
 
-	htmlBody := `<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 40px 0; color: #0f172a; }
-        .container { max-width: 500px; margin: 0 auto; background: #ffffff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; }
-        .logo { font-size: 26px; font-weight: 800; color: #0f172a; margin-bottom: 24px; text-align: center; }
-        .logo span { color: #0d9488; }
-        .title { font-size: 20px; font-weight: 600; color: #1e293b; margin-top: 0; margin-bottom: 12px; text-align: center; }
-        .text { font-size: 15px; color: #475569; margin-bottom: 24px; line-height: 1.6; text-align: center; }
-        .warn { font-size: 14px; color: #64748b; text-align: center; margin-bottom: 32px; margin-top: 24px; }
-        .footer { padding-top: 24px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #94a3b8; text-align: center; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="logo">Care<span>bed</span></div>
-        <h2 class="title">Password Changed</h2>
-        <p class="text">You have successfully reset the password for your Carebed account.</p>
-        <p class="warn">If you did not execute this change, please urgently reach out to our support team to lock your account.</p>
-        <div class="footer">
-            &copy; 2026 Carebed. All rights reserved.<br>
-            Computer Engineering Thesis Project
-        </div>
-    </div>
-</body>
-</html>`
-	m.SetBody("text/html", htmlBody)
+	m.SetBody("text/html", smtpbody.PasswordChangedBody())
 
 	d := gomail.NewDialer(smtpHost, portNum, smtpUser, smtpPass)
 	return d.DialAndSend(m)
