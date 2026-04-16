@@ -98,7 +98,7 @@ func main() {
 
 	// start server
 	fmt.Println("Server started on: http://" + serverAddress + port)
-	if err := http.ListenAndServe(port, customHandler); err != nil {
+	if err := http.ListenAndServe(serverAddress+port, customHandler); err != nil {
 		log.Fatal(err)
 	}
 }
