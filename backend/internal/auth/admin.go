@@ -12,7 +12,17 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Admin API data structures
+type Users struct {
+	ID       int    `json:"id" db:"id"`
+	FullName string `json:"fullname" db:"fullname"`
+	Username string `json:"username" db:"username"`
+	Password string `json:"password" db:"password_hash"`
+	Email    string `json:"email" db:"email"`
+	Phone    string `json:"phone" db:"phone"`
+	Role     string `json:"role" db:"role"`
+}
+
+// Patient struct to store patient information
 type Patient struct {
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -20,7 +30,7 @@ type Patient struct {
 	CreatedAt string `json:"created_at"`
 }
 
-// Vital struct to represent vital sign data for admin API responses
+// Vital struct to store vital signs
 type Vital struct {
 	ID         int    `json:"id"`
 	PatientID  int    `json:"patient_id"`
@@ -28,22 +38,22 @@ type Vital struct {
 	RecordedAt string `json:"recorded_at"`
 }
 
-// AdminUser struct to represent user data for admin API responses
+// Admin user struct to store admin user information
 type AdminUser struct {
-	ID       int    `json:"id"`
-	FullName string `json:"fullname"`
-	Username string `json:"username"`
-	Role     string `json:"role"`
+	ID       int    `json:"id" db:"id" `
+	FullName string `json:"fullname" db:"fullname"`
+	Username string `json:"username" db:"username"`
+	Role     string `json:"role" db:"role"`
 }
 
-// AdminGetUsersHandler retrieves all users for admin view
-func (h *Handler) AdminGetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	// Query the database for all users
+// Admin API endpoints Admin users GET handler Get all users
+func (h *Handler) AdminUsersGetHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query("SELECT id, fullname, username, role FROM users")
 	if err != nil {
+		log.Println("Error fetching users", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
 			Success: false,
-			Message: "Database error",
+			Message: "Error fetching users",
 		})
 		return
 	}
@@ -62,17 +72,10 @@ func (h *Handler) AdminGetUsersHandler(w http.ResponseWriter, r *http.Request) {
 	jsonwrite.WriteJSON(w, http.StatusOK, users)
 }
 
-// AdminAddUsersHandler creates a new user from admin view
-func (h *Handler) AdminAddUsersHandler(w http.ResponseWriter, r *http.Request) {
-	// Decode the JSON request body into a struct
-	var req struct {
-		FullName string `json:"fullname" validate:"required"`
-		Username string `json:"username" validate:"required"`
-		Password string `json:"password" validate:"required,min=8"`
-		Email    string `json:"email" validate:"omitempty,email"`
-		Phone    string `json:"phone" validate:"omitempty,e164"`
-	}
-	// Decode the JSON request body into the req struct
+// Admin users POST handler Create a new user
+func (h *Handler) AdminUsersPostHandler(w http.ResponseWriter, r *http.Request) {
+	var req Users
+	// Decode the request body into the LoginRequest struct
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -105,8 +108,10 @@ func (h *Handler) AdminAddUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err = h.DB.Exec("INSERT INTO users (fullname, username, password_hash, role, email, phone) VALUES (?, ?, ?, 'user', NULLIF(?, ''), NULLIF(?, ''))", req.FullName, req.Username, hash, req.Email, req.Phone)
+	qeury := ("INSERT INTO users (fullname, username, password_hash, role, email, phone) VALUES (?, ?, ?, 'user', NULLIF(?, ''), NULLIF(?, ''))")
+	_, err = h.DB.Exec(qeury, req.FullName, req.Username, hash, req.Email, req.Phone)
 	if err != nil {
+		log.Printf("Error: Username already taken")
 		jsonwrite.WriteJSON(w, http.StatusConflict, jsonwrite.APIResponse{
 			Success: false,
 			Message: "Username already taken or database error",
@@ -114,15 +119,18 @@ func (h *Handler) AdminAddUsersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("User created successfully")
 	jsonwrite.WriteJSON(w, http.StatusCreated, jsonwrite.APIResponse{
 		Success: true,
 		Message: "User created successfully",
 	})
 }
 
+// Admin users DELETE handler Delete a user
 func (h *Handler) AdminUsersDeleteHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/api/admin/users/")
 	if idStr == "" || idStr == r.URL.Path {
+		log.Println("Error: Invalid user ID")
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
 			Message: "Invalid user ID",
@@ -133,6 +141,7 @@ func (h *Handler) AdminUsersDeleteHandler(w http.ResponseWriter, r *http.Request
 	var role string
 	err := h.DB.QueryRow("SELECT role FROM users WHERE id = ?", idStr).Scan(&role)
 	if err == nil && role == "admin" {
+		log.Println("Error: Cannot delete a system admin account")
 		jsonwrite.WriteJSON(w, http.StatusForbidden, jsonwrite.APIResponse{
 			Success: false,
 			Message: "Cannot delete a system admin account",
@@ -142,25 +151,24 @@ func (h *Handler) AdminUsersDeleteHandler(w http.ResponseWriter, r *http.Request
 
 	_, err = h.DB.Exec("DELETE FROM users WHERE id = ?", idStr)
 	if err != nil {
+		log.Println("Error deleting user", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
 			Success: false,
-			Message: "Database error",
+			Message: "Error deleting user",
 		})
 		return
 	}
 
+	log.Println("User deleted successfully")
 	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.APIResponse{
 		Success: true,
 		Message: "User deleted successfully",
 	})
 }
 
-func (h *Handler) AdminUpdatePasswordHandler(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		ID       int    `json:"id,omitempty"`
-		Password string `json:"password" validate:"required,min=8"`
-	}
-	// Decode the JSON request body into the req struct
+// Admin users Update Password handler
+func (h *Handler) AdminUsersUpdatePasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var req Users
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -183,26 +191,29 @@ func (h *Handler) AdminUpdatePasswordHandler(w http.ResponseWriter, r *http.Requ
 	hash, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
 	_, err := h.DB.Exec("UPDATE users SET password_hash = ? WHERE id = ?", hash, req.ID)
 	if err != nil {
+		log.Println("Error updating password", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
 			Success: false,
-			Message: "Database error",
+			Message: "Error updating password",
 		})
 		return
 	}
 
+	log.Println("Password updated successfully")
 	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.APIResponse{
 		Success: true,
 		Message: "Password updated successfully",
 	})
 }
 
-// AdminGetPatientsHandler retrieves all patients for admin view
-func (h *Handler) AdminGetPatientsHandler(w http.ResponseWriter, r *http.Request) {
+// Admin patients GET handler Get all patients
+func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request) {
 	rows, err := h.DB.Query("SELECT id, name, user_id, created_at FROM patients")
 	if err != nil {
+		log.Println("Error fetching patients", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
 			Success: false,
-			Message: "Database error",
+			Message: "Error fetching patients",
 		})
 		return
 	}
@@ -220,12 +231,9 @@ func (h *Handler) AdminGetPatientsHandler(w http.ResponseWriter, r *http.Request
 	jsonwrite.WriteJSON(w, http.StatusOK, pts)
 }
 
-// AdminAddPatientsHandler creates a new patient from admin view
-func (h *Handler) AdminAddPatientsHandler(w http.ResponseWriter, r *http.Request) {
-	var p struct {
-		UserID *int   `json:"user_id"`
-		Name   string `json:"name" validate:"required"`
-	}
+// Admin patients POST handler Create a new patient
+func (h *Handler) AdminPatientsPostHandler(w http.ResponseWriter, r *http.Request) {
+	var p Patient
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
 			Success: false,
@@ -246,12 +254,14 @@ func (h *Handler) AdminAddPatientsHandler(w http.ResponseWriter, r *http.Request
 	// Insert the new patient into the database
 	_, err := h.DB.Exec("INSERT INTO patients (name, user_id) VALUES (?, ?)", p.Name, p.UserID)
 	if err != nil {
+		log.Println("Error adding patient", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
 			Success: false,
-			Message: "Database error",
+			Message: "Error adding patient",
 		})
 		return
 	}
+	log.Println("Patient added successfully")
 	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.APIResponse{
 		Success: true,
 		Message: "Patient added",
@@ -265,9 +275,10 @@ func (h *Handler) AdminGetVitalsHandler(w http.ResponseWriter, r *http.Request) 
 
 	rows, err := h.DB.Query("SELECT id, patient_id, bpm, recorded_at FROM vitals ORDER BY recorded_at DESC")
 	if err != nil {
+		log.Println("Database error", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
 			Success: false,
-			Message: "Database error",
+			Message: "Error fetching vitals",
 		})
 		return
 	}

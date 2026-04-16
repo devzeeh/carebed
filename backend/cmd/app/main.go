@@ -73,15 +73,14 @@ func main() {
 	mux.HandleFunc("POST /api/v1/forgot-password/reset", authHandler.ResetPasswordHandler)
 
 	// Admin API routes
-	mux.HandleFunc("GET /api/v1/admin/users", authHandler.AdminGetUsersHandler)
-	mux.HandleFunc("POST /api/v1/admin/users", authHandler.AdminAddUsersHandler)
-	mux.HandleFunc("DELETE /api/v1/admin/users/", authHandler.AdminUsersDeleteHandler)
-	mux.HandleFunc("PUT /api/v1/admin/users/password", authHandler.AdminUpdatePasswordHandler)
+	mux.HandleFunc("GET /api/admin/users", authHandler.AdminUsersGetHandler)
+	mux.HandleFunc("POST /api/admin/users", authHandler.AdminUsersPostHandler)
+	mux.HandleFunc("DELETE /api/admin/users/", authHandler.AdminUsersDeleteHandler)
+	mux.HandleFunc("PUT /api/admin/users/password", authHandler.AdminUsersUpdatePasswordHandler	)
 	
-	// Admin API routes for patients and vitals
-	mux.HandleFunc("GET /api/v1/admin/patients", authHandler.AdminGetPatientsHandler)
-	mux.HandleFunc("POST /api/v1/admin/patients", authHandler.AdminAddPatientsHandler)
-	mux.HandleFunc("GET /api/v1/admin/vitals", authHandler.AdminGetVitalsHandler)
+	mux.HandleFunc("GET /api/admin/patients", authHandler.AdminPatientsGetHandler)
+	mux.HandleFunc("POST /api/admin/patients", authHandler.AdminPatientsPostHandler)
+	mux.HandleFunc("GET /api/admin/vitals", authHandler.AdminGetVitalsHandler)
 
 	// Admin UI Route
 	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +98,7 @@ func main() {
 
 	// start server
 	fmt.Println("Server started on: http://" + serverAddress + port)
-	if err := http.ListenAndServe(port, customHandler); err != nil {
+	if err := http.ListenAndServe(serverAddress+port, customHandler); err != nil {
 		log.Fatal(err)
 	}
 }
