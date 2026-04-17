@@ -1,5 +1,8 @@
 package smtpbody
 
+// This package provides HTML templates for email bodies used in the Carebed application.
+// It includes templates for OTP emails notifications, 
+// ensuring a consistent and professional appearance for all outgoing emails.
 func OTPBody() string {
 	return `<!DOCTYPE html>
 <html>
@@ -35,6 +38,8 @@ func OTPBody() string {
 </html>`
 }
 
+// PasswordChangedBody returns the HTML template for the password change notification email.
+// It includes a personalized greeting and a warning to contact support if the password change was not initiated by the user.
 func PasswordChangedBody() string {
 	return `<!DOCTYPE html>
 <html>

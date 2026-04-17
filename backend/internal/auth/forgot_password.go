@@ -2,7 +2,7 @@ package authentication
 
 import (
 	jsonwrite "carebed/backend/internal/pkg/json"
-	smtpbody "carebed/backend/internal/pkg/smtpbody"
+	"carebed/backend/internal/pkg/smtpbody"
 	"carebed/backend/internal/pkg/validate"
 	"crypto/rand"
 	"encoding/json"
@@ -117,7 +117,6 @@ func sendPasswordChangedEmail(toAddress string, name string) error {
 	m.SetHeader("Subject", "Carebed - Password Changed Successfully")
 
 	m.SetBody("text/html", fmt.Sprintf(smtpbody.PasswordChangedBody(), name))
-
 	d := gomail.NewDialer(smtpHost, portNum, smtpUser, smtpPass)
 	return d.DialAndSend(m)
 }
