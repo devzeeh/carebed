@@ -50,16 +50,16 @@ document.getElementById('confirmLogoutBtn').addEventListener('click', () => {
 
 // Load Users
 async function loadUsers() {
-    const res = await fetch('/api/admin/users', { headers });
+    const res = await fetch('/admin/users', { headers });
     if (!res.ok) {
         if(res.status === 401) window.location.href = '/';
         return;
     }
-    const allUsers = await res.json() || [];
+    users = await res.json() || [];
     
     // Split users by role
-    const adminUsers = allUsers.filter(u => u.role === 'admin');
-    const standardUsers = allUsers.filter(u => u.role === 'user');
+    const adminUsers = users.filter(u => u.role === 'admin');
+    const standardUsers = users.filter(u => u.role === 'user');
 
     // Populate Admins Table
     const adminBody = document.querySelector('#adminsTable tbody');
@@ -71,7 +71,7 @@ async function loadUsers() {
             <td class="p-4 text-slate-900 dark:text-slate-200">${u.fullname}</td>
             <td class="p-4 text-slate-500 dark:text-slate-400">${u.username}</td>
             <td class="p-4 text-right">
-                <button onclick="openResetModal(${u.id})" class="text-teal-600 hover:text-teal-500 text-sm font-medium">Reset Pwd</button>
+                <button onclick="openEditModal(${u.id})" class="text-teal-600 hover:text-teal-500 text-sm font-medium">Edit</button>
                 <span class="text-slate-400 dark:text-slate-600 text-sm font-medium ml-3 cursor-not-allowed" title="System Admins cannot be deleted">Delete</span>
             </td>
         `;
@@ -91,7 +91,7 @@ async function loadUsers() {
                 <td class="p-4 text-slate-900 dark:text-slate-200">${u.fullname}</td>
                 <td class="p-4 text-slate-500 dark:text-slate-400">${u.username}</td>
                 <td class="p-4 text-right">
-                    <button onclick="openResetModal(${u.id})" class="text-teal-600 hover:text-teal-500 text-sm font-medium">Reset Pwd</button>
+                    <button onclick="openEditModal(${u.id})" class="text-teal-600 hover:text-teal-500 text-sm font-medium">Edit</button>
                     <button onclick="deleteUser(${u.id})" class="text-rose-500 hover:text-rose-400 text-sm font-medium ml-3">Delete</button>
                 </td>
             `;
@@ -109,7 +109,7 @@ document.getElementById('addUserForm').addEventListener('submit', async (e) => {
     const phone = document.getElementById('addUPhone').value;
     const password = document.getElementById('addUPassword').value;
 
-    const res = await fetch('/api/admin/users', {
+    const res = await fetch('/admin/users', {
         method: 'POST',
         headers,
         body: JSON.stringify({ fullname, username, email, phone, password })
@@ -127,39 +127,54 @@ document.getElementById('addUserForm').addEventListener('submit', async (e) => {
 // Delete User
 async function deleteUser(id) {
     if (!confirm("Are you sure you want to delete this account?")) return;
-    const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers });
+    const res = await fetch(`/admin/users/${id}`, { method: 'DELETE', headers });
     if (res.ok) {
         loadUsers();
     }
 }
 
-// Reset Password
-function openResetModal(id) {
-    document.getElementById('resetUserId').value = id;
-    document.getElementById('newUPassword').value = '';
-    document.getElementById('modal-reset-pwd').classList.remove('hidden');
+// Edit User
+function openEditModal(id) {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+    document.getElementById('editUserId').value = user.id;
+    document.getElementById('editUName').value = user.fullname || '';
+    document.getElementById('editUUsername').value = user.username || '';
+    document.getElementById('editUEmail').value = user.email || '';
+    document.getElementById('editUPhone').value = user.phone || '';
+    document.getElementById('editUPassword').value = '';
+    document.getElementById('modal-edit-user').classList.remove('hidden');
 }
 
-document.getElementById('resetPwdForm').addEventListener('submit', async (e) => {
+document.getElementById('editUserForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const id = document.getElementById('resetUserId').value;
-    const password = document.getElementById('newUPassword').value;
+    const id = document.getElementById('editUserId').value;
+    const username = document.getElementById('editUUsername').value;
+    const email = document.getElementById('editUEmail').value;
+    const phone = document.getElementById('editUPhone').value;
+    const password = document.getElementById('editUPassword').value;
 
-    const res = await fetch(`/api/admin/users/password`, {
+    const body = { id: parseInt(id), username, email, phone };
+    if (password) {
+        body.password = password;
+    }
+
+    const res = await fetch(`/admin/users`, {
         method: 'PUT',
         headers,
-        body: JSON.stringify({ id: parseInt(id), password })
+        body: JSON.stringify(body)
     });
     if (res.ok) {
-        document.getElementById('modal-reset-pwd').classList.add('hidden');
+        document.getElementById('modal-edit-user').classList.add('hidden');
+        loadUsers();
     } else {
-        alert("Failed to update password");
+        alert("Failed to update user");
     }
 });
 
 // Load Patients
 async function loadPatients() {
-    const res = await fetch('/api/admin/patients', { headers });
+    const res = await fetch('/admin/patients', { headers });
     if (!res.ok) return;
     patients = await res.json() || [];
     
@@ -177,11 +192,11 @@ async function loadPatients() {
         div.innerHTML = `
             <div class="flex justify-between items-start">
                 <div>
-                    <h3 class="font-bold text-slate-900 dark:text-white text-lg">${p.name}</h3>
+                    <h3 class="font-bold text-slate-900 dark:text-white text-lg">${p.fullname}</h3>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Patient ID: ${p.id}</p>
                 </div>
                 <div class="h-10 w-10 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center font-bold">
-                    ${p.name.charAt(0).toUpperCase()}
+                    ${p.fullname ? p.fullname.charAt(0).toUpperCase() : '?'}
                 </div>
             </div>
             <div class="mt-4 text-xs text-slate-400 dark:text-slate-500">
@@ -195,12 +210,24 @@ async function loadPatients() {
 // Add Patient
 document.getElementById('addPatientForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const name = document.getElementById('addPName').value;
+    const fullname = document.getElementById('addPName').value;
+    const gender = document.getElementById('addPGender').value;
+    const room_number = document.getElementById('addPRoom').value;
+    const bed_number = document.getElementById('addPBed').value;
+    const emergency_contact_name = document.getElementById('addPEmergencyName').value;
+    const emergency_contact_phone = document.getElementById('addPEmergencyPhone').value;
 
-    const res = await fetch('/api/admin/patients', {
+    const res = await fetch('/admin/patients', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ name })
+        body: JSON.stringify({ 
+            fullname, 
+            gender, 
+            room_number, 
+            bed_number,
+            emergency_contact_name: emergency_contact_name || null,
+            emergency_contact_phone: emergency_contact_phone || null
+        })
     });
 
     if (res.ok) {
@@ -214,7 +241,7 @@ document.getElementById('addPatientForm').addEventListener('submit', async (e) =
 
 // Load Vitals
 async function loadVitals() {
-    const res = await fetch('/api/admin/vitals', { headers });
+    const res = await fetch('/admin/vitals', { headers });
     if (!res.ok) return;
     vitals = await res.json() || [];
     
@@ -227,17 +254,19 @@ async function loadVitals() {
     }
 
     vitals.forEach(v => {
-        const p = patients.find(pat => pat.id === v.patient_id) || {name: "Unknown"};
         const div = document.createElement('div');
         div.className = "bg-white dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col justify-between";
         
         let bpmColor = "text-emerald-500 dark:text-emerald-400";
         if(v.bpm > 100 || v.bpm < 60) bpmColor = "text-rose-500 dark:text-rose-400 animate-pulse";
 
+        let wsColor = v.wetness_detected ? "text-blue-500 bg-blue-50 dark:bg-blue-500/10" : "text-slate-500 bg-slate-50 dark:bg-slate-800";
+        let wsStatus = v.wetness_detected ? "Wet" : "Dry";
+        
         div.innerHTML = `
             <div class="flex justify-between items-center mb-4">
-                <div class="font-semibold text-slate-900 dark:text-slate-100">${p.name}</div>
-                <div class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-600 dark:text-slate-300">Room A-${v.patient_id}</div>
+                <div class="font-semibold text-slate-900 dark:text-slate-100">${v.fullname || 'Unknown'}</div>
+                <div class="text-xs px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-slate-600 dark:text-slate-300">Room ${v.room_number || '?'} - Bed ${v.bed_number || '?'}</div>
             </div>
             
             <div class="flex items-end gap-3 mt-2">
@@ -249,6 +278,18 @@ async function loadVitals() {
                     </svg>
                 </div>
             </div>
+            
+            <div class="grid grid-cols-2 gap-4 mt-5 pt-5 border-t border-slate-100 dark:border-slate-800/80">
+                <div>
+                    <div class="text-xs text-slate-400 dark:text-slate-500 mb-1">Body Temp</div>
+                    <div class="font-semibold text-slate-700 dark:text-slate-300">${v.body_temperature || 0}&deg;C</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-400 dark:text-slate-500 mb-1">Sensor Status</div>
+                    <div class="inline-block px-2 py-0.5 rounded text-xs font-medium ${wsColor}">${wsStatus}</div>
+                </div>
+            </div>
+
             <div class="text-xs text-slate-400 dark:text-slate-500 mt-4">
                 Last updated: ${new Date(v.recorded_at).toLocaleTimeString()}
             </div>

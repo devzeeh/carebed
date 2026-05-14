@@ -47,7 +47,7 @@
         requestSubmitBtn.disabled = true;
         requestSubmitBtn.textContent = 'Sending...';
 
-        fetch('/api/v1/forgot-password/request', {
+        fetch('/v1/forgot-password/request', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contactInfo })
@@ -100,7 +100,7 @@
         verifySubmitBtn.disabled = true;
         verifySubmitBtn.textContent = 'Verifying...';
 
-        fetch('/api/v1/forgot-password/verify', {
+        fetch('/v1/forgot-password/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contactInfo: savedContactInfo, otp })
@@ -147,7 +147,7 @@
         resendOtpBtn.textContent = 'Sending...';
         
         // API call to resend OTP
-        fetch('/api/v1/forgot-password/request', {
+        fetch('/v1/forgot-password/request', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ contactInfo: savedContactInfo })
@@ -235,7 +235,7 @@
         resetSubmitBtn.disabled = true;
         resetSubmitBtn.textContent = 'Saving...';
 
-        fetch('/api/v1/forgot-password/reset', {
+        fetch('/v1/forgot-password/reset', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

@@ -33,9 +33,9 @@ func main() {
 	}
 
 	// Fetch the API key securely from the environment
-	apiKey := os.Getenv("API_KEY")
+	apiKey := os.Getenv("AI")
 	if apiKey == "" {
-		log.Fatal("API_KEY is not set")
+		log.Fatal("AI is not set")
 	}
 
 	// Initialize the Gemini Client

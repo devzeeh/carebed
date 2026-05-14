@@ -46,7 +46,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
     };
 
     try {
-        const response = await fetch('/api/v1/loginauth', {
+        const response = await fetch('/v1/loginauth', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
