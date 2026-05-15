@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bed Selection - Carebed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: { extend: {} }
+        }
+    </script>
+</head>
+
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-300 font-sans antialiased min-h-screen transition-colors duration-500">
+
+    <!-- Header -->
+    <header class="h-20 bg-white/80 dark:bg-[#0b1120]/80 backdrop-blur-lg border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between px-8 sticky top-0 z-10 transition-colors duration-500">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-teal-500/20">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+            </div>
+            <h1 class="text-2xl font-bold text-slate-800 dark:text-slate-100 tracking-tight">Caregiver Portal</h1>
+        </div>
+
+        <div class="flex items-center gap-5">
+            <button id="logoutBtn" class="text-sm font-semibold text-slate-500 hover:text-rose-500 dark:text-slate-400 dark:hover:text-rose-400 transition-colors">Sign Out</button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto p-8">
+        <div class="mb-10 text-center md:text-left">
+            <h2 class="text-3xl font-extrabold text-slate-800 dark:text-white mb-2">Select Bed Assignment</h2>
+            <p class="text-slate-500 dark:text-slate-400">Choose the bed you are currently monitoring or register a new patient.</p>
+        </div>
+
+        <!-- Bed Grid -->
+        <div id="bedGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <!-- Bed cards will be loaded here -->
+            <div class="animate-pulse bg-white dark:bg-slate-900 rounded-2xl h-48 border border-slate-200 dark:border-slate-800"></div>
+            <div class="animate-pulse bg-white dark:bg-slate-900 rounded-2xl h-48 border border-slate-200 dark:border-slate-800"></div>
+            <div class="animate-pulse bg-white dark:bg-slate-900 rounded-2xl h-48 border border-slate-200 dark:border-slate-800"></div>
+            <div class="animate-pulse bg-white dark:bg-slate-900 rounded-2xl h-48 border border-slate-200 dark:border-slate-800"></div>
+        </div>
+    </main>
+
+    <!-- Registration Modal -->
+    <div id="registerModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity bg-slate-950/60 backdrop-blur-sm"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            
+            <div class="inline-block align-bottom bg-white dark:bg-slate-900 rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full border border-slate-200 dark:border-slate-800">
+                <form id="registerPatientForm">
+                    <div class="px-6 pt-6 pb-4">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-xl font-bold text-slate-800 dark:text-white">New Patient Admission</h3>
+                            <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- Toggle -->
+                            <div class="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                                <button type="button" id="toggleExisting" onclick="switchPatientMode('existing')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all bg-white dark:bg-slate-700 shadow-sm text-teal-600 dark:text-teal-400">Existing Patient</button>
+                                <button type="button" id="toggleNew" onclick="switchPatientMode('new')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-500 dark:text-slate-400">New Admission</button>
+                            </div>
+
+                            <!-- Existing Patient Selector -->
+                            <div id="existingPatientGroup">
+                                <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Select Patient</label>
+                                <select id="existingPatientId" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all dark:text-white">
+                                    <option value="">Choose a patient...</option>
+                                    <!-- Populated via JS -->
+                                </select>
+                            </div>
+
+                            <!-- New Patient Fields -->
+                            <div id="newPatientGroup" class="hidden space-y-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Full Name</label>
+                                    <input type="text" id="fullname" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all dark:text-white">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Gender</label>
+                                        <select id="gender" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all dark:text-white">
+                                            <option value="Male">Male</option>
+                                            <option value="Female">Female</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Age</label>
+                                        <input type="number" id="age" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all dark:text-white">
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Emergency Contact Name</label>
+                                    <input type="text" id="emergencyName" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all dark:text-white">
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Emergency Contact Phone</label>
+                                    <input type="text" id="emergencyPhone" class="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all dark:text-white">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div id="roomNumberDiv">
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Room Number</label>
+                                    <input type="text" id="roomNumber" readonly class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-500 dark:text-slate-400">
+                                </div>
+                                <div id="bedNumberDiv">
+                                    <label class="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">Bed Number</label>
+                                    <input type="text" id="bedNumber" readonly class="w-full px-4 py-2.5 bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl outline-none text-slate-500 dark:text-slate-400">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-6 py-4 bg-slate-50 dark:bg-slate-800/30 flex items-center justify-end gap-3 rounded-b-2xl">
+                        <button type="button" onclick="closeModal()" class="px-5 py-2 text-sm font-bold text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">Cancel</button>
+                        <button type="submit" class="px-6 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold rounded-xl shadow-lg shadow-teal-600/20 transition-all">Admission</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Discharge Modal -->
+    <div id="modal-discharge" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-[#0b1120] rounded-2xl shadow-2xl w-full max-w-sm border border-slate-200 dark:border-slate-800/80 p-6 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-rose-100 dark:bg-rose-900/30 mb-4">
+                <svg class="h-6 w-6 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-slate-900 dark:text-white mb-2">Discharge Patient?</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mb-6">Are you sure you want to discharge <span id="dischargeName" class="font-bold text-slate-900 dark:text-white"></span>? This will free up the bed.</p>
+            <div class="flex justify-center gap-3">
+                <button type="button" onclick="document.getElementById('modal-discharge').classList.add('hidden')" class="px-4 py-2 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors w-full">Cancel</button>
+                <button type="button" id="confirmDischargeBtn" class="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-500 rounded-lg transition-colors w-full shadow-lg shadow-rose-600/20">Discharge</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/assets/js/selection.js?v=11"></script>
+</body>
+</html>

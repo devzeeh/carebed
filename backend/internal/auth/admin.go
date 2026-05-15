@@ -338,7 +338,7 @@ func sendAdminUserDetailsUpdatedEmail(toAddress string, name string, changesHTML
 
 // Admin patients GET handler Get all patients
 func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.DB.Query("SELECT id, fullname, Gender, emergency_contact_name, emergency_contact_phone, status, created_at, updated_at FROM patients")
+	rows, err := h.DB.Query("SELECT id, fullname, Gender, emergency_contact_name, emergency_contact_phone, status, created_at, updated_at FROM patients WHERE status = 'Active'")
 	if err != nil {
 		log.Println("Error fetching patients", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
@@ -360,10 +360,34 @@ func (h *Handler) AdminPatientsGetHandler(w http.ResponseWriter, r *http.Request
 	jsonwrite.WriteJSON(w, http.StatusOK, pts)
 }
 
+// GetPatientNameHandler returns the name of a specific patient
+func (h *Handler) GetPatientNameHandler(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		id = "1"
+	}
+
+	var fullname string
+	err := h.DB.QueryRow("SELECT fullname FROM patients WHERE id = ?", id).Scan(&fullname)
+	if err != nil {
+		log.Printf("Error fetching patient name for ID %s: %v", id, err)
+		jsonwrite.WriteJSON(w, http.StatusNotFound, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Patient not found",
+		})
+		return
+	}
+
+	jsonwrite.WriteJSON(w, http.StatusOK, map[string]string{
+		"fullname": fullname,
+	})
+}
+
 // CreatePatientRequest is the payload for adding a patient
 type CreatePatientRequest struct {
 	FullName              string  `json:"fullname"`
 	Gender                string  `json:"gender"`
+	Age                   int     `json:"age"`
 	EmergencyContactName  *string `json:"emergency_contact_name"`
 	EmergencyContactPhone *string `json:"emergency_contact_phone"`
 	RoomNumber            string  `json:"room_number"`
@@ -390,8 +414,8 @@ func (h *Handler) AdminPatientsPostHandler(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Insert patient
-	res, err := h.DB.Exec("INSERT INTO patients (fullname, Gender, emergency_contact_name, emergency_contact_phone) VALUES (?, ?, ?, ?)",
-		req.FullName, req.Gender, req.EmergencyContactName, req.EmergencyContactPhone)
+	res, err := h.DB.Exec("INSERT INTO patients (fullname, Gender, age, emergency_contact_name, emergency_contact_phone) VALUES (?, ?, ?, ?, ?)",
+		req.FullName, req.Gender, req.Age, req.EmergencyContactName, req.EmergencyContactPhone)
 	if err != nil {
 		log.Println("Error adding patient", err)
 		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
@@ -442,14 +466,6 @@ type HealthEventResponse struct {
 // AdminGetVitalsHandler retrieves all health events for admin view
 func (h *Handler) AdminGetVitalsHandler(w http.ResponseWriter, r *http.Request) {
 	// Ensure there's some mock data if none exists
-	h.DB.Exec(`
-		INSERT IGNORE INTO health_events (patient_id, bed_id, bpm, body_temp, wetness_detected) 
-		SELECT p.id, b.id, 75.00, 36.50, FALSE 
-		FROM patients p 
-		JOIN beds b ON p.id = b.patient_id 
-		WHERE NOT EXISTS (SELECT 1 FROM health_events he WHERE he.patient_id = p.id)
-	`)
-
 	rows, err := h.DB.Query(`
 		SELECT 
 			he.id, he.patient_id, he.bed_id, he.bpm, he.body_temp, he.wetness_detected, he.event_type, he.recorded_at,
@@ -457,6 +473,7 @@ func (h *Handler) AdminGetVitalsHandler(w http.ResponseWriter, r *http.Request) 
 		FROM health_events he
 		JOIN beds b ON he.bed_id = b.id
 		JOIN patients p ON he.patient_id = p.id
+		WHERE p.status = 'Active'
 		ORDER BY he.recorded_at DESC
 	`)
 	if err != nil {
@@ -499,6 +516,7 @@ func (h *Handler) AdminExportPatientsHandler(w http.ResponseWriter, r *http.Requ
 		FROM patients p 
 		LEFT JOIN beds b ON p.id = b.patient_id
 		LEFT JOIN health_events h ON p.id = h.patient_id 
+		WHERE p.status = 'Active'
 		ORDER BY p.fullname ASC, h.recorded_at DESC
 	`)
 	if err != nil {
@@ -646,4 +664,175 @@ func (h *Handler) LiveVitalsSSEHandler(w http.ResponseWriter, r *http.Request) {
 			flusher.Flush()
 		}
 	}
+}
+
+// SelectionView serves the patient selection page
+func (h *Handler) SelectionView(w http.ResponseWriter, r *http.Request) {
+	h.Tpl.ExecuteTemplate(w, "selection.html", nil)
+}
+
+// GetBedsHandler returns all beds with current occupancy and patient name
+func (h *Handler) GetBedsHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.DB.Query(`
+		SELECT 
+			b.id, b.room_number, b.bed_number, 
+			IF(p.status = 'Active', b.patient_id, NULL) as patient_id,
+			IF(p.status = 'Active', b.occupancy_status, 'Empty') as occupancy_status,
+			IF(p.status = 'Active', p.fullname, '') as patient_name
+		FROM beds b
+		LEFT JOIN patients p ON b.patient_id = p.id
+		ORDER BY b.room_number, b.bed_number
+	`)
+	if err != nil {
+		log.Println("Error fetching beds", err)
+		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Error fetching beds",
+		})
+		return
+	}
+	defer rows.Close()
+
+	type BedInfo struct {
+		ID              int    `json:"id"`
+		RoomNumber      string `json:"room_number"`
+		BedNumber       string `json:"bed_number"`
+		PatientID       *int   `json:"patient_id"`
+		OccupancyStatus string `json:"occupancy_status"`
+		PatientName     string `json:"patient_name"`
+	}
+
+	beds := []BedInfo{}
+	for rows.Next() {
+		var b BedInfo
+		if err := rows.Scan(&b.ID, &b.RoomNumber, &b.BedNumber, &b.PatientID, &b.OccupancyStatus, &b.PatientName); err != nil {
+			continue
+		}
+		beds = append(beds, b)
+	}
+
+	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.APIResponse{
+		Success: true,
+		Data:    beds,
+	})
+}
+
+// GetUnassignedPatientsHandler returns patients who are Active but not in any bed
+func (h *Handler) GetUnassignedPatientsHandler(w http.ResponseWriter, r *http.Request) {
+	rows, err := h.DB.Query(`
+		SELECT id, fullname 
+		FROM patients 
+		WHERE status = 'Active' 
+		AND id NOT IN (SELECT patient_id FROM beds WHERE patient_id IS NOT NULL)
+		ORDER BY fullname ASC
+	`)
+	if err != nil {
+		log.Println("Error fetching unassigned patients", err)
+		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Error fetching patients",
+		})
+		return
+	}
+	defer rows.Close()
+
+	type SimplePatient struct {
+		ID       int    `json:"id"`
+		FullName string `json:"fullname"`
+	}
+
+	patients := []SimplePatient{}
+	for rows.Next() {
+		var p SimplePatient
+		if err := rows.Scan(&p.ID, &p.FullName); err != nil {
+			continue
+		}
+		patients = append(patients, p)
+	}
+
+	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.APIResponse{
+		Success: true,
+		Data:    patients,
+	})
+}
+
+// AssignPatientToBedHandler links an existing patient to a specific bed
+func (h *Handler) AssignPatientToBedHandler(w http.ResponseWriter, r *http.Request) {
+	var payload struct {
+		PatientID  int    `json:"patient_id"`
+		RoomNumber string `json:"room_number"`
+		BedNumber  string `json:"bed_number"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Invalid request payload",
+		})
+		return
+	}
+
+	_, err := h.DB.Exec(`
+		UPDATE beds 
+		SET patient_id = ?, occupancy_status = 'Occupied' 
+		WHERE room_number = ? AND bed_number = ?
+	`, payload.PatientID, payload.RoomNumber, payload.BedNumber)
+
+	if err != nil {
+		log.Println("Error assigning patient to bed", err)
+		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Database error",
+		})
+		return
+	}
+
+	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.APIResponse{
+		Success: true,
+		Message: "Patient assigned successfully",
+	})
+}
+
+// DischargePatientHandler handles patient discharge logic
+func (h *Handler) DischargePatientHandler(w http.ResponseWriter, r *http.Request) {
+	patientID := r.URL.Query().Get("id")
+	if patientID == "" {
+		jsonwrite.WriteJSON(w, http.StatusBadRequest, jsonwrite.APIResponse{
+			Success: false,
+			Message: "Missing patient ID",
+		})
+		return
+	}
+
+	tx, err := h.DB.Begin()
+	if err != nil {
+		log.Println("Error starting transaction", err)
+		return
+	}
+
+	// 1. Update patient status
+	_, err = tx.Exec("UPDATE patients SET status = 'Discharged' WHERE id = ?", patientID)
+	if err != nil {
+		tx.Rollback()
+		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{Success: false, Message: "Error updating patient"})
+		return
+	}
+
+	// 2. Clear bed assignment
+	_, err = tx.Exec("UPDATE beds SET patient_id = NULL, occupancy_status = 'Empty' WHERE patient_id = ?", patientID)
+	if err != nil {
+		tx.Rollback()
+		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{Success: false, Message: "Error clearing bed"})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		jsonwrite.WriteJSON(w, http.StatusInternalServerError, jsonwrite.APIResponse{Success: false, Message: "Transaction commit failed"})
+		return
+	}
+
+	jsonwrite.WriteJSON(w, http.StatusOK, jsonwrite.APIResponse{
+		Success: true,
+		Message: "Patient discharged successfully",
+	})
 }

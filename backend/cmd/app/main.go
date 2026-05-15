@@ -98,14 +98,14 @@ func main() {
 				ResponseSchema:   responseSchema,
 				Temperature:      genai.Ptr[float32](0.1),
 			}
-			aiHandler = ai.NewHandler(client, config)
+			aiHandler = ai.NewHandler(db, client, config)
 		}
 	} else {
 		log.Println("Warning: AI API key not set, AI analysis will not be available")
 	}
 
 	if aiHandler != nil {
-		mux.HandleFunc("POST /api/ai/v1/analyze", aiHandler.HandleAnalysis)
+		mux.HandleFunc("POST /ai/v1/analyze", aiHandler.HandleAnalysis)
 	}
 
 	// serve static files (CSS, JS, images)
@@ -131,14 +131,23 @@ func main() {
 	mux.HandleFunc("POST /admin/patients", authHandler.AdminPatientsPostHandler)
 	mux.HandleFunc("GET /admin/patients/export", authHandler.AdminExportPatientsHandler)
 	mux.HandleFunc("GET /admin/vitals", authHandler.AdminGetVitalsHandler)
-	
+	mux.HandleFunc("GET /api/patients/name", authHandler.GetPatientNameHandler)
+
 	// Live SSE Route
 	mux.HandleFunc("GET /api/vitals/live", authHandler.LiveVitalsSSEHandler)
 
-	// Admin UI Route
-	mux.HandleFunc("GET /admin", func(w http.ResponseWriter, r *http.Request) {
-		authHandler.Tpl.ExecuteTemplate(w, "admin.html", nil)
-	})
+	mux.HandleFunc("GET /selection", authHandler.SelectionView)
+	mux.HandleFunc("GET /api/beds", authHandler.GetBedsHandler)
+	mux.HandleFunc("GET /api/patients/unassigned", authHandler.GetUnassignedPatientsHandler)
+	mux.HandleFunc("POST /api/beds/assign", authHandler.AssignPatientToBedHandler)
+	mux.HandleFunc("POST /api/patients/discharge", authHandler.DischargePatientHandler)
+
+	// Admin UI Routes
+	for _, path := range []string{"/admin", "/admin/manage/patients", "/admin/manage/vitals"} {
+		mux.HandleFunc("GET "+path, func(w http.ResponseWriter, r *http.Request) {
+			authHandler.Tpl.ExecuteTemplate(w, "admin.html", nil)
+		})
+	}
 
 	// wrap mux with custom handler for root redirect
 	customHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -3,10 +3,13 @@ package mqttclient
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"gopkg.in/gomail.v2"
 )
 
 type Event struct {
@@ -18,8 +21,10 @@ type Event struct {
 var SSEBroadcast = make(chan Event, 100)
 
 type Client struct {
-	client mqtt.Client
-	db     *sql.DB
+	client         mqtt.Client
+	db             *sql.DB
+	LatestBodyTemp float64
+	LatestWetness  int
 }
 
 func NewClient(db *sql.DB) *Client {
@@ -38,22 +43,22 @@ func (c *Client) Connect() error {
 	opts.SetDefaultPublishHandler(c.messageHandler)
 
 	opts.OnConnect = func(c mqtt.Client) {
-		log.Println("✅ Connected to MQTT Broker:", brokerUrl)
+		log.Println("Connected to MQTT Broker:", brokerUrl)
 		
 		// Subscribe to topics
 		if token := c.Subscribe("carebed/temperature", 0, nil); token.Wait() && token.Error() != nil {
-			log.Println("❌ Error subscribing to temperature:", token.Error())
+			log.Println("Error subscribing to temperature:", token.Error())
 		}
 		if token := c.Subscribe("carebed/ecg", 0, nil); token.Wait() && token.Error() != nil {
-			log.Println("❌ Error subscribing to ecg:", token.Error())
+			log.Println("Error subscribing to ecg:", token.Error())
 		}
 		if token := c.Subscribe("carebed/vitals", 0, nil); token.Wait() && token.Error() != nil {
-			log.Println("❌ Error subscribing to vitals:", token.Error())
+			log.Println("Error subscribing to vitals:", token.Error())
 		}
 	}
 
 	opts.OnConnectionLost = func(c mqtt.Client, err error) {
-		log.Printf("❌ Connect lost: %v", err)
+		log.Printf("Connect lost: %v", err)
 	}
 
 	client := mqtt.NewClient(opts)
@@ -80,10 +85,20 @@ func (c *Client) messageHandler(client mqtt.Client, msg mqtt.Message) {
 	switch topic {
 	case "carebed/temperature":
 		eventType = "temperature"
+		if temp, ok := data["roomTempC"].(float64); ok {
+			c.LatestBodyTemp = temp
+		}
 	case "carebed/ecg":
 		eventType = "ecg"
 	case "carebed/vitals":
 		eventType = "vitals"
+		if isWet, ok := data["isWet"].(bool); ok {
+			if isWet {
+				c.LatestWetness = 1
+			} else {
+				c.LatestWetness = 0
+			}
+		}
 	}
 
 	select {
@@ -120,21 +135,72 @@ func (c *Client) handleDatabaseStorage(topic string, data map[string]interface{}
 
 		// Check if BPM is abnormal (less than 60 or greater than 100)
 		// Ignore 0 as it usually means no reading
-		if (bpm < 60 && bpm != 0) {
-			_, err := c.db.Exec("INSERT INTO health_events (patient_id, bed_id, bpm, event_type) VALUES (?, ?, ?, ?)", 1, 1, bpm, "Low BPM Alert")
+		if bpm < 60 && bpm != 0 {
+			eventTypeStr := "BPM Alert"
+			_, err := c.db.Exec("INSERT INTO health_events (patient_id, bed_id, bpm, body_temp, wetness_detected, event_type) VALUES (?, ?, ?, ?, ?, ?)", 1, 1, bpm, c.LatestBodyTemp, c.LatestWetness, eventTypeStr)
 			if err != nil {
-				log.Printf("❌ Error saving Low BPM to db: %v", err)
+				log.Printf("Error saving Low BPM to db: %v", err)
 			} else {
-				log.Printf("⚠️ Low BPM (%d) detected and saved to database", int(bpm))
+				log.Printf("Low BPM (%d) detected and saved to database", int(bpm))
+				c.sendAlertEmail(bpm, c.LatestBodyTemp, c.LatestWetness, eventTypeStr)
 			}
-		} else if (bpm > 100) {
-			// Save to database, assuming a default patient_id of 1 for testing
-			_, err := c.db.Exec("INSERT INTO health_events (patient_id, bed_id, bpm, event_type) VALUES (?, ?, ?, ?)", 1, 1, bpm, "High BPM Alert")
+		} else if bpm > 100 {
+			eventTypeStr := "High BPM Alert"
+			_, err := c.db.Exec("INSERT INTO health_events (patient_id, bed_id, bpm, body_temp, wetness_detected, event_type) VALUES (?, ?, ?, ?, ?, ?)", 1, 1, bpm, c.LatestBodyTemp, c.LatestWetness, eventTypeStr)
 			if err != nil {
-				log.Printf("❌ Error saving High BPM to db: %v", err)
+				log.Printf("Error saving High BPM to db: %v", err)
 			} else {
-				log.Printf("⚠️ High BPM (%d) detected and saved to database", int(bpm))
+				log.Printf("High BPM (%d) detected and saved to database", int(bpm))
+				c.sendAlertEmail(bpm, c.LatestBodyTemp, c.LatestWetness, eventTypeStr)
 			}
 		}
+	}
+}
+
+func (c *Client) sendAlertEmail(bpm float64, bodyTemp float64, wetness int, alertType string) {
+	smtpHost := os.Getenv("SMTP_HOST")
+	smtpPort := os.Getenv("SMTP_PORT")
+	smtpUser := os.Getenv("SMTP_USER")
+	smtpPass := os.Getenv("SMTP_PASSWORD")
+	caregiverEmail := os.Getenv("CAREGIVER_EMAIL")
+
+	if smtpHost == "" || caregiverEmail == "" || smtpUser == "" {
+		return // Missing config
+	}
+
+	portNum, err := strconv.Atoi(smtpPort)
+	if err != nil {
+		portNum = 587
+	}
+
+	m := gomail.NewMessage()
+	m.SetHeader("From", "Carebed <"+smtpUser+">")
+	m.SetHeader("To", caregiverEmail)
+	m.SetHeader("Subject", "Carebed - "+alertType)
+
+	wetnessStr := "Dry"
+	if wetness == 1 {
+		wetnessStr = "Wet"
+	}
+
+	body := fmt.Sprintf(`
+	<div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+		<h2 style="color: #e53e3e;">Carebed Alert</h2>
+		<p><strong>%s</strong></p>
+		<ul>
+			<li><strong>BPM:</strong> %.0f</li>
+			<li><strong>Body Temp:</strong> %.1f &deg;C</li>
+			<li><strong>Wetness:</strong> %s</li>
+		</ul>
+		<p>Please check on the patient immediately.</p>
+	</div>`, alertType, bpm, bodyTemp, wetnessStr)
+
+	m.SetBody("text/html", body)
+
+	d := gomail.NewDialer(smtpHost, portNum, smtpUser, smtpPass)
+	if err := d.DialAndSend(m); err != nil {
+		log.Printf("Failed to send alert email: %v", err)
+	} else {
+		log.Printf("Alert email sent to %s", caregiverEmail)
 	}
 }

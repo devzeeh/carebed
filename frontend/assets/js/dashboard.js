@@ -1,6 +1,12 @@
 const authToken = localStorage.getItem('auth_token');
+const currentPatientId = localStorage.getItem('current_patient_id');
+
 if (!authToken) {
     window.location.href = '/login';
+}
+
+if (!currentPatientId && window.location.pathname === '/dashboard') {
+    window.location.href = '/selection';
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -22,33 +28,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // SPA VIEW SWAPPING
+    // SPA VIEW SWAPPING (Redundant now sidebar is gone, but keeping minimal for compatibility)
     const dashboardView = document.getElementById('dashboardView');
-    const settingsView = document.getElementById('settingsView');
     const headerTitle = document.getElementById('headerTitle');
-    const openSettingsBtn = document.getElementById('openSettingsBtn');
-    const navOverviewBtn = document.getElementById('navOverviewBtn');
 
-    openSettingsBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        profileDropdown.classList.add('hidden');
-        dashboardView.classList.add('hidden');
-        settingsView.classList.remove('hidden');
-        headerTitle.textContent = 'Account Settings';
-    });
-
-    navOverviewBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        settingsView.classList.add('hidden');
-        dashboardView.classList.remove('hidden');
-        headerTitle.textContent = 'System Overview';
-    });
 
     // LOGOUT MODAL
     const logoutModal = document.getElementById('logoutModal');
     const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
     const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
-    const sidebarLogoutBtn = document.getElementById('logoutBtn');
     const dropdownLogoutBtn = document.getElementById('dropdownLogoutBtn');
 
     const openLogoutModal = (e) => {
@@ -56,8 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
         logoutModal.classList.remove('hidden');
         profileDropdown.classList.add('hidden'); 
     };
-
-    sidebarLogoutBtn.addEventListener('click', openLogoutModal);
     dropdownLogoutBtn.addEventListener('click', openLogoutModal);
 
     cancelLogoutBtn.addEventListener('click', () => {
@@ -65,8 +51,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     confirmLogoutBtn.addEventListener('click', () => {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('current_patient_id');
         window.location.href = '/login';
     });
+
+    // CHANGE PATIENT (BACK TO SELECTION)
+    const changePatientBtn = document.getElementById('changePatientBtn');
+    if (changePatientBtn) {
+        changePatientBtn.addEventListener('click', () => {
+            window.location.href = '/selection';
+        });
+    }
 
     // CHART.JS INITIALIZATION (PANG-ECG NA!)
     Chart.defaults.color = '#64748b';
@@ -96,8 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 y: { 
                     beginAtZero: false, 
                     // Tanggalin ang hardcoded min/max para kusa siyang mag-adjust sa taas ng kuryente ng puso mo
-                    suggestedMin: 1000, 
-                    suggestedMax: 3000,
+                    suggestedMin: -2500, // 1000 
+                    suggestedMax: 2500, // 3000
                     grid: { color: 'rgba(148, 163, 184, 0.15)' }, 
                     border: { display: false } 
                 },
@@ -115,6 +111,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const tempElement = document.getElementById('tempCurrent'); 
     const patientStatus = document.getElementById('patientStatus');
     const wetnessStatus = document.getElementById('wetnessStatus');
+    const positionCurrent = document.getElementById('positionCurrent');
+    const wetnessCurrent = document.getElementById('wetnessCurrent');
+    const patientNameHeader = document.getElementById('patientName');
+    const patientAvatar = patientNameHeader?.parentElement?.previousElementSibling;
 
     let currentBPM = 0; 
     let isFingerDetected = false; 
@@ -124,6 +124,21 @@ document.addEventListener("DOMContentLoaded", () => {
     let countdownInterval = null;
     let continuousUpdateTimer = null; 
     let timeLeft = 15;
+
+    // Fetch Patient Name from DB
+    fetch(`/api/patients/name?id=${currentPatientId}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.fullname && patientNameHeader) {
+                patientNameHeader.textContent = data.fullname;
+                // Update avatar initials if possible
+                if (patientAvatar) {
+                    const initials = data.fullname.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+                    patientAvatar.textContent = initials;
+                }
+            }
+        })
+        .catch(err => console.error("Error fetching patient name:", err));
 
     const eventSource = new EventSource('/api/vitals/live');
     
@@ -144,6 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (data.isPatientDetected !== undefined) {
                     const status = data.isPatientDetected ? 'In Bed' : 'Out of Bed';
                     patientStatus.textContent = status;
+                    if (positionCurrent) positionCurrent.textContent = status;
                     if(status === 'Out of Bed') {
                         patientStatus.className = 'px-2.5 py-1 bg-amber-50 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800 rounded-md text-amber-700 dark:text-amber-400 shadow-sm transition-all duration-300 font-bold';
                     } else {
@@ -160,14 +176,14 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (!window.aiAlertCooldown) {
                             window.aiAlertCooldown = true;
                             
-                            fetch('/api/ai/v1/analyze', {
+                            fetch('/ai/v1/analyze', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
-                                    patient_age: 65,
+                                    patient_id: parseInt(currentPatientId),
                                     current_bpm: currentBPM,
-                                    state: currentBPM > 100 ? "high_bpm" : "low_bpm",
-                                    duration_minutes: 1,
+                                    state: "resting in bed",
+                                    duration_seconds: 15,
                                     symptoms: ["abnormal heartbeat detected by bed sensor"]
                                 })
                             })
@@ -254,6 +270,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (data.isWet !== undefined) {
                     const wStatus = data.isWet ? 'Wet' : 'Dry';
                     wetnessStatus.textContent = wStatus;
+                    if (wetnessCurrent) wetnessCurrent.textContent = wStatus;
                     if(wStatus === 'Wet') {
                         wetnessStatus.className = 'px-2.5 py-1 bg-rose-50 dark:bg-rose-900/40 border border-rose-200 dark:border-rose-800 rounded-md text-rose-700 dark:text-rose-400 font-bold shadow-sm transition-all duration-300 animate-pulse';
                     } else {

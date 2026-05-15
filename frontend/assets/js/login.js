@@ -91,7 +91,7 @@ document.getElementById('loginForm').addEventListener('submit', async function (
             if (data.user && data.user.role === 'admin') {
                 window.location.href = "/admin";
             } else {
-                window.location.href = "/dashboard";
+                window.location.href = "/selection";
             }
         }
     } catch (error) {

@@ -15,29 +15,59 @@ let vitals = [];
 
 // Navigation
 const pages = ['users', 'patients', 'vitals'];
+
+function showSection(page) {
+    pages.forEach(p => {
+        const el = document.getElementById(`nav-${p}`);
+        const section = document.getElementById(`section-${p}`);
+        if (p === page) {
+            el.classList.add('bg-teal-50', 'dark:bg-teal-500/10', 'text-teal-700', 'dark:text-teal-400');
+            el.classList.remove('text-slate-600', 'dark:text-slate-400');
+            section.classList.remove('hidden');
+        } else {
+            el.classList.remove('bg-teal-50', 'dark:bg-teal-500/10', 'text-teal-700', 'dark:text-teal-400');
+            el.classList.add('text-slate-600', 'dark:text-slate-400');
+            section.classList.add('hidden');
+        }
+    });
+
+    // Load data
+    if (page === 'users') loadUsers();
+    if (page === 'patients') loadPatients();
+    if (page === 'vitals') loadVitals();
+}
+
+// Sidebar link listeners
 pages.forEach(page => {
     document.getElementById(`nav-${page}`).addEventListener('click', (e) => {
         e.preventDefault();
-        // Update tabs
-        pages.forEach(p => {
-            const el = document.getElementById(`nav-${p}`);
-            if (p === page) {
-                el.classList.add('bg-teal-50', 'dark:bg-teal-500/10', 'text-teal-700', 'dark:text-teal-400');
-                el.classList.remove('text-slate-600', 'dark:text-slate-400');
-                document.getElementById(`section-${p}`).classList.remove('hidden');
-            } else {
-                el.classList.remove('bg-teal-50', 'dark:bg-teal-500/10', 'text-teal-700', 'dark:text-teal-400');
-                el.classList.add('text-slate-600', 'dark:text-slate-400');
-                document.getElementById(`section-${p}`).classList.add('hidden');
-            }
-        });
-
-        // Load data if needed
-        if (page === 'users') loadUsers();
-        if (page === 'patients') loadPatients();
-        if (page === 'vitals') loadVitals();
+        const path = page === 'users' ? '/admin' : `/admin/manage/${page}`;
+        if (page === 'vitals') {
+            // Special case for vitals if needed, but standard manage works
+            const vitalsPath = '/admin/manage/vitals';
+            history.pushState({}, '', vitalsPath);
+            showSection('vitals');
+        } else {
+            history.pushState({}, '', path);
+            showSection(page);
+        }
     });
 });
+
+// Handle browser back/forward buttons
+window.addEventListener('popstate', initRoute);
+
+// Initialize based on URL
+function initRoute() {
+    const path = window.location.pathname;
+    if (path.includes('/admin/manage/patients')) {
+        showSection('patients');
+    } else if (path.includes('/admin/manage/vitals')) {
+        showSection('vitals');
+    } else {
+        showSection('users');
+    }
+}
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
     document.getElementById('modal-signout').classList.remove('hidden');
@@ -125,13 +155,33 @@ document.getElementById('addUserForm').addEventListener('submit', async (e) => {
 });
 
 // Delete User
-async function deleteUser(id) {
-    if (!confirm("Are you sure you want to delete this account?")) return;
-    const res = await fetch(`/admin/users/${id}`, { method: 'DELETE', headers });
-    if (res.ok) {
-        loadUsers();
-    }
+let userIdToDelete = null;
+
+function deleteUser(id) {
+    const user = users.find(u => u.id === id);
+    if (!user) return;
+    
+    userIdToDelete = id;
+    document.getElementById('deleteUserName').textContent = user.fullname;
+    document.getElementById('modal-delete-user').classList.remove('hidden');
 }
+
+document.getElementById('confirmDeleteUserBtn').addEventListener('click', async () => {
+    if (!userIdToDelete) return;
+    
+    try {
+        const res = await fetch(`/admin/users/${userIdToDelete}`, { method: 'DELETE', headers });
+        if (res.ok) {
+            document.getElementById('modal-delete-user').classList.add('hidden');
+            userIdToDelete = null;
+            loadUsers();
+        } else {
+            alert("Failed to delete user");
+        }
+    } catch (error) {
+        console.error("Delete error:", error);
+    }
+});
 
 // Edit User
 function openEditModal(id) {
@@ -188,23 +238,48 @@ async function loadPatients() {
 
     patients.forEach(p => {
         const div = document.createElement('div');
-        div.className = "bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-100 dark:border-slate-800/80";
+        div.className = "bg-slate-50 dark:bg-slate-800/40 p-5 rounded-xl border border-slate-100 dark:border-slate-800/80 group";
         div.innerHTML = `
             <div class="flex justify-between items-start">
                 <div>
                     <h3 class="font-bold text-slate-900 dark:text-white text-lg">${p.fullname}</h3>
                     <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Patient ID: ${p.id}</p>
                 </div>
-                <div class="h-10 w-10 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center font-bold">
-                    ${p.fullname ? p.fullname.charAt(0).toUpperCase() : '?'}
+                <div class="flex flex-col items-end gap-2">
+                    <div class="h-10 w-10 bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400 rounded-full flex items-center justify-center font-bold">
+                        ${p.fullname ? p.fullname.charAt(0).toUpperCase() : '?'}
+                    </div>
+                    <button onclick="confirmDischargePatient(${p.id}, '${p.fullname}')" class="p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors" title="Discharge Patient">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    </button>
                 </div>
             </div>
-            <div class="mt-4 text-xs text-slate-400 dark:text-slate-500">
-                Added: ${new Date(p.created_at).toLocaleDateString()}
+            <div class="mt-4 flex justify-between items-center text-xs text-slate-400 dark:text-slate-500">
+                <span>Added: ${new Date(p.created_at).toLocaleDateString()}</span>
+                <span class="px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-medium">Active</span>
             </div>
         `;
         container.appendChild(div);
     });
+}
+
+// Discharge Patient Logic for Admin
+async function confirmDischargePatient(id, name) {
+    if (!confirm(`Are you sure you want to discharge ${name}?`)) return;
+    
+    try {
+        const res = await fetch(`/api/patients/discharge?id=${id}`, {
+            method: 'POST',
+            headers
+        });
+        if (res.ok) {
+            loadPatients();
+        } else {
+            alert("Failed to discharge patient");
+        }
+    } catch (error) {
+        console.error("Discharge error:", error);
+    }
 }
 
 // Add Patient
@@ -299,6 +374,4 @@ async function loadVitals() {
 }
 
 // Initial load
-loadUsers();
-// Preload patients for vitals matching
-loadPatients();
+initRoute();
