@@ -6,8 +6,21 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('registerPatientForm').addEventListener('submit', handleRegistration);
     document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.removeItem('auth_token');
+        localStorage.removeItem('current_patient_id');
         window.location.href = '/login';
     });
+
+    const currentPatientId = localStorage.getItem('current_patient_id');
+    const backBtn = document.getElementById('backToDashboardBtn');
+    const backDivider = document.getElementById('backDivider');
+    
+    if (currentPatientId && backBtn) {
+        backBtn.classList.remove('hidden');
+        if (backDivider) backDivider.classList.remove('hidden');
+        backBtn.addEventListener('click', () => {
+            window.location.href = '/dashboard';
+        });
+    }
 });
 
 async function fetchBeds() {
@@ -62,19 +75,10 @@ function renderBeds(beds) {
             </div>
 
             ${isOccupied ? `
-                <div class="flex gap-2">
-                    <button onclick="goToDashboard(${bed.patient_id})" 
-                        class="flex-1 py-3 rounded-xl text-sm font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-600/20 transition-all duration-300">
-                        View Dashboard
-                    </button>
-                    <button onclick="confirmDischarge(${bed.patient_id}, '${bed.patient_name.replace(/'/g, "\\'")}')" 
-                        class="px-4 py-3 rounded-xl text-sm font-bold bg-rose-50 dark:bg-rose-900/20 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/40 transition-all duration-300 border border-rose-100 dark:border-rose-900/30"
-                        title="Discharge Patient">
-                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                        </svg>
-                    </button>
-                </div>
+                <button onclick="goToDashboard(${bed.patient_id})" 
+                    class="w-full py-3 rounded-xl text-sm font-bold bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-600/20 transition-all duration-300">
+                    View Dashboard
+                </button>
             ` : `
                 <button onclick="openRegisterModal('${bed.room_number}', '${bed.bed_number}')" 
                     class="w-full py-3 rounded-xl text-sm font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-all duration-300">
@@ -228,37 +232,4 @@ async function handleRegistration(e) {
     }
 }
 
-let patientIdToDischarge = null;
 
-function confirmDischarge(id, name) {
-    patientIdToDischarge = id;
-    document.getElementById('dischargeName').textContent = name;
-    document.getElementById('modal-discharge').classList.remove('hidden');
-}
-
-// Attach listener for discharge confirmation
-document.addEventListener('DOMContentLoaded', () => {
-    const confirmBtn = document.getElementById('confirmDischargeBtn');
-    if (confirmBtn) {
-        confirmBtn.addEventListener('click', async () => {
-            if (!patientIdToDischarge) return;
-            try {
-                const response = await fetch(`/api/patients/discharge?id=${patientIdToDischarge}`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
-                    }
-                });
-                const result = await response.json();
-                if (result.success) {
-                    document.getElementById('modal-discharge').classList.add('hidden');
-                    fetchBeds();
-                } else {
-                    alert(result.message);
-                }
-            } catch (error) {
-                console.error('Discharge error:', error);
-            }
-        });
-    }
-});

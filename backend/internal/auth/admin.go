@@ -499,7 +499,9 @@ func (h *Handler) AdminGetVitalsHandler(w http.ResponseWriter, r *http.Request) 
 
 // AdminExportPatientsHandler exports patient data and vitals as a CSV file
 func (h *Handler) AdminExportPatientsHandler(w http.ResponseWriter, r *http.Request) {
-	rows, err := h.DB.Query(`
+	patientID := r.URL.Query().Get("id")
+	
+	query := `
 		SELECT 
 			p.id, 
 			p.fullname, 
@@ -517,8 +519,17 @@ func (h *Handler) AdminExportPatientsHandler(w http.ResponseWriter, r *http.Requ
 		LEFT JOIN beds b ON p.id = b.patient_id
 		LEFT JOIN health_events h ON p.id = h.patient_id 
 		WHERE p.status = 'Active'
-		ORDER BY p.fullname ASC, h.recorded_at DESC
-	`)
+	`
+	
+	args := []interface{}{}
+	if patientID != "" {
+		query += " AND p.id = ?"
+		args = append(args, patientID)
+	}
+	
+	query += " ORDER BY p.fullname ASC, h.recorded_at DESC"
+	
+	rows, err := h.DB.Query(query, args...)
 	if err != nil {
 		log.Println("Database error during export", err)
 		http.Error(w, "Failed to generate report", http.StatusInternalServerError)

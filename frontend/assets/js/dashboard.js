@@ -154,7 +154,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = parsed.data;
 
             if (type === "temperature") {
-                if (data.roomTempC !== undefined) tempElement.textContent = parseFloat(data.roomTempC).toFixed(1);
+                if (data.bodyTempC !== undefined) tempElement.textContent = parseFloat(data.bodyTempC).toFixed(1);
                 
                 if (data.isPatientDetected !== undefined) {
                     const status = data.isPatientDetected ? 'In Bed' : 'Out of Bed';
@@ -189,7 +189,14 @@ document.addEventListener("DOMContentLoaded", () => {
                             })
                             .then(res => res.json())
                             .then(analysisData => {
-                                alert(`🚨 AI HEALTH ALERT 🚨\n\nBPM: ${currentBPM}\nSeverity: ${analysisData.severity_level}\n\nAnalysis: ${analysisData.analysis}\n\nAction Plan: ${analysisData.action_plan}\n\nDisclaimer: ${analysisData.medical_disclaimer}`);
+                                // Show Custom AI Modal instead of basic alert
+                                document.getElementById('ai-severity').textContent = `Severity: ${analysisData.severity_level || 'Caution'}`;
+                                document.getElementById('ai-analysis').textContent = analysisData.analysis;
+                                document.getElementById('ai-action').textContent = analysisData.action_plan;
+                                document.getElementById('ai-disclaimer').textContent = analysisData.medical_disclaimer;
+                                
+                                document.getElementById('modal-ai-alert').classList.remove('hidden');
+                                
                                 setTimeout(() => window.aiAlertCooldown = false, 60000); // 1 minute cooldown
                             })
                             .catch(err => {
@@ -200,17 +207,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
 
-                // 🔥 BAGONG LOGIC: I-DRAWING ANG ECG VALUE SA CHART 🔥
+                // BAGONG LOGIC: I-DRAWING ANG ECG VALUE SA CHART
                 if (data.ecgValue !== undefined) {
                     vitalsChart.data.labels.push(''); // Blank label para gumalaw ang graph
                     vitalsChart.data.datasets[0].data.push(data.ecgValue);
 
-                    // Panatilihin ang huling 50 readings sa screen para mukhang alon
-                    if (vitalsChart.data.labels.length > 50) {
+                    // Maintain a smaller window (30 points) to make the wave appear faster
+                    if (vitalsChart.data.labels.length > 30) {
                         vitalsChart.data.labels.shift();
                         vitalsChart.data.datasets[0].data.shift();
                     }
-                    vitalsChart.update();
+                    vitalsChart.update('none'); // Use 'none' for maximum performance and speed
                 }
             } 
             else if (type === "vitals") {
@@ -291,8 +298,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const exportPdfBtn = document.getElementById('exportPdfBtn');
     if (exportPdfBtn) exportPdfBtn.addEventListener('click', () => alert('Generating Patient Summary PDF... Downloading shortly.'));
 
-    // SOS ALERT
-    const sosBtn = document.getElementById('sosBtn');
-    if (sosBtn) sosBtn.addEventListener('click', () => alert('CRITICAL: SOS Alert triggered! Nurses have been notified immediately.'));
+
 
 });

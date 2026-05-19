@@ -82,11 +82,11 @@ document.getElementById('confirmLogoutBtn').addEventListener('click', () => {
 async function loadUsers() {
     const res = await fetch('/admin/users', { headers });
     if (!res.ok) {
-        if(res.status === 401) window.location.href = '/';
+        if (res.status === 401) window.location.href = '/';
         return;
     }
     users = await res.json() || [];
-    
+
     // Split users by role
     const adminUsers = users.filter(u => u.role === 'admin');
     const standardUsers = users.filter(u => u.role === 'user');
@@ -160,7 +160,7 @@ let userIdToDelete = null;
 function deleteUser(id) {
     const user = users.find(u => u.id === id);
     if (!user) return;
-    
+
     userIdToDelete = id;
     document.getElementById('deleteUserName').textContent = user.fullname;
     document.getElementById('modal-delete-user').classList.remove('hidden');
@@ -168,7 +168,7 @@ function deleteUser(id) {
 
 document.getElementById('confirmDeleteUserBtn').addEventListener('click', async () => {
     if (!userIdToDelete) return;
-    
+
     try {
         const res = await fetch(`/admin/users/${userIdToDelete}`, { method: 'DELETE', headers });
         if (res.ok) {
@@ -227,10 +227,10 @@ async function loadPatients() {
     const res = await fetch('/admin/patients', { headers });
     if (!res.ok) return;
     patients = await res.json() || [];
-    
+
     const container = document.getElementById('patientsList');
     container.innerHTML = '';
-    
+
     if (patients.length === 0) {
         container.innerHTML = `<div class="col-span-full text-center text-slate-500 dark:text-slate-400 py-8">No patients registered yet.</div>`;
         return;
@@ -266,7 +266,7 @@ async function loadPatients() {
 // Discharge Patient Logic for Admin
 async function confirmDischargePatient(id, name) {
     if (!confirm(`Are you sure you want to discharge ${name}?`)) return;
-    
+
     try {
         const res = await fetch(`/api/patients/discharge?id=${id}`, {
             method: 'POST',
@@ -295,10 +295,10 @@ document.getElementById('addPatientForm').addEventListener('submit', async (e) =
     const res = await fetch('/admin/patients', {
         method: 'POST',
         headers,
-        body: JSON.stringify({ 
-            fullname, 
-            gender, 
-            room_number, 
+        body: JSON.stringify({
+            fullname,
+            gender,
+            room_number,
             bed_number,
             emergency_contact_name: emergency_contact_name || null,
             emergency_contact_phone: emergency_contact_phone || null
@@ -319,7 +319,7 @@ async function loadVitals() {
     const res = await fetch('/admin/vitals', { headers });
     if (!res.ok) return;
     vitals = await res.json() || [];
-    
+
     const container = document.getElementById('vitalsGrid');
     container.innerHTML = '';
 
@@ -331,13 +331,13 @@ async function loadVitals() {
     vitals.forEach(v => {
         const div = document.createElement('div');
         div.className = "bg-white dark:bg-slate-800/40 p-6 rounded-2xl border border-slate-200 dark:border-slate-800/80 shadow-sm flex flex-col justify-between";
-        
+
         let bpmColor = "text-emerald-500 dark:text-emerald-400";
-        if(v.bpm > 100 || v.bpm < 60) bpmColor = "text-rose-500 dark:text-rose-400 animate-pulse";
+        if (v.bpm > 100 || v.bpm < 60) bpmColor = "text-rose-500 dark:text-rose-400 animate-pulse";
 
         let wsColor = v.wetness_detected ? "text-blue-500 bg-blue-50 dark:bg-blue-500/10" : "text-slate-500 bg-slate-50 dark:bg-slate-800";
         let wsStatus = v.wetness_detected ? "Wet" : "Dry";
-        
+
         div.innerHTML = `
             <div class="flex justify-between items-center mb-4">
                 <div class="font-semibold text-slate-900 dark:text-slate-100">${v.fullname || 'Unknown'}</div>
@@ -371,6 +371,51 @@ async function loadVitals() {
         `;
         container.appendChild(div);
     });
+}
+
+// Export Modal Logic
+function openExportModal() {
+    const select = document.getElementById('exportPatientId');
+    // Clear previous options except placeholders
+    select.innerHTML = `
+        <option value="">Choose Patient...</option>
+    `;
+
+    // Add active patients to dropdown
+    patients.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.fullname;
+        select.appendChild(opt);
+    });
+
+    // Reset button state
+    validateExportBtn();
+
+    document.getElementById('modal-export-patient').classList.remove('hidden');
+}
+
+function validateExportBtn() {
+    const select = document.getElementById('exportPatientId');
+    const btn = document.getElementById('confirmExportBtn');
+    if (select.value === "") {
+        btn.disabled = true;
+    } else {
+        btn.disabled = false;
+    }
+}
+
+function handleExportExcel() {
+    const patientId = document.getElementById('exportPatientId').value;
+    let url = '/admin/patients/export';
+
+    if (patientId !== 'all') {
+        url += `?id=${patientId}`;
+    }
+
+    // Open in new tab to trigger download
+    window.open(url, '_blank');
+    document.getElementById('modal-export-patient').classList.add('hidden');
 }
 
 // Initial load

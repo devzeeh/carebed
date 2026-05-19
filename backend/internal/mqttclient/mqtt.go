@@ -34,7 +34,7 @@ func NewClient(db *sql.DB) *Client {
 func (c *Client) Connect() error {
 	brokerUrl := os.Getenv("MQTT_BROKER_URL")
 	if brokerUrl == "" {
-		brokerUrl = "tcp://192.168.43.101:1883"
+		brokerUrl = "tcp://192.168.254.104:1883"
 	}
 
 	opts := mqtt.NewClientOptions().AddBroker(brokerUrl)
@@ -44,7 +44,7 @@ func (c *Client) Connect() error {
 
 	opts.OnConnect = func(c mqtt.Client) {
 		log.Println("Connected to MQTT Broker:", brokerUrl)
-		
+
 		// Subscribe to topics
 		if token := c.Subscribe("carebed/temperature", 0, nil); token.Wait() && token.Error() != nil {
 			log.Println("Error subscribing to temperature:", token.Error())
@@ -85,7 +85,7 @@ func (c *Client) messageHandler(client mqtt.Client, msg mqtt.Message) {
 	switch topic {
 	case "carebed/temperature":
 		eventType = "temperature"
-		if temp, ok := data["roomTempC"].(float64); ok {
+		if temp, ok := data["bodyTempC"].(float64); ok {
 			c.LatestBodyTemp = temp
 		}
 	case "carebed/ecg":
@@ -111,7 +111,7 @@ func (c *Client) messageHandler(client mqtt.Client, msg mqtt.Message) {
 	// E.g., we can log major changes or only write every 15 seconds.
 	// Since we don't have user ID in the ESP32 payload directly, we might need a default bed assignment for testing,
 	// or assume this device is hardcoded to Bed ID 1 for now until device management is built.
-	
+
 	// c.handleDatabaseStorage(topic, data)
 	c.handleDatabaseStorage(topic, data)
 }
